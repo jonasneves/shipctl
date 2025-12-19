@@ -75,17 +75,20 @@ function App() {
   return (
     <div className="min-h-screen bg-primary">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-secondary border-b border-default">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-              <span className="text-xs font-bold text-white">S</span>
+      <header className="sticky top-0 z-10">
+        <div className="flex items-center justify-between px-4 py-3 header-gradient">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur">
+              <span className="text-sm font-bold text-white">S</span>
             </div>
-            <span className="font-semibold text-primary">shipctl</span>
+            <div className="flex flex-col">
+              <span className="font-semibold text-white text-sm">shipctl</span>
+              <span className="text-[10px] text-white/70">Deploy from your browser</span>
+            </div>
           </div>
           <button
             onClick={() => setShowSettings(true)}
-            className="btn-ghost p-1.5 rounded-md"
+            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/20 transition-colors text-white"
             title="Settings"
           >
             <Settings className="w-4 h-4" />
@@ -93,18 +96,18 @@ function App() {
         </div>
 
         {/* Project Selector */}
-        <div className="px-4 pb-3">
+        <div className="px-4 py-3 bg-secondary border-b border-default">
           <button
             onClick={() => setActiveTab('projects')}
-            className="w-full flex items-center justify-between px-3 py-2 card card-hover transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2.5 card card-hover transition-colors"
           >
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
-              <span className="text-sm text-primary truncate">
+              <span className="text-sm text-primary truncate font-medium">
                 {activeProject?.name || 'Select a project'}
               </span>
             </div>
-            <svg className="w-4 h-4 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -112,15 +115,15 @@ function App() {
 
         {/* Tab Navigation */}
         {activeTab !== 'projects' && (
-          <div className="flex px-4 gap-1">
+          <div className="flex px-4 bg-secondary border-b border-default">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-t-md transition-colors ${
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
                   activeTab === tab.id
-                    ? 'bg-primary text-primary border-t border-l border-r border-default -mb-px'
-                    : 'text-secondary hover:text-primary'
+                    ? 'border-blue-500 text-primary'
+                    : 'border-transparent text-secondary hover:text-primary'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />

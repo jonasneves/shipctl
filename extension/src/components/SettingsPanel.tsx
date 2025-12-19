@@ -73,12 +73,15 @@ export default function SettingsPanel({
   return (
     <div className="min-h-screen bg-primary">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-secondary border-b border-default">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button onClick={onBack} className="btn-ghost p-1.5 rounded-md">
+      <header className="sticky top-0 z-10">
+        <div className="flex items-center gap-3 px-4 py-3 header-gradient">
+          <button 
+            onClick={onBack} 
+            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/20 transition-colors text-white"
+          >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="font-semibold text-primary">Settings</h1>
+          <h1 className="font-semibold text-white">Settings</h1>
         </div>
       </header>
 
@@ -207,12 +210,15 @@ function ProjectEditor({
   return (
     <div className="min-h-screen bg-primary">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-secondary border-b border-default">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <button onClick={onCancel} className="btn-ghost p-1.5 rounded-md">
+      <header className="sticky top-0 z-10">
+        <div className="flex items-center gap-3 px-4 py-3 header-gradient">
+          <button 
+            onClick={onCancel} 
+            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/20 transition-colors text-white"
+          >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="font-semibold text-primary">
+          <h1 className="font-semibold text-white">
             {project.name ? 'Edit Project' : 'New Project'}
           </h1>
         </div>
