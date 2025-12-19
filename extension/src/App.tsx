@@ -50,24 +50,12 @@ function App() {
     chrome.storage.local.set({ activeProjectId: project.id });
   };
 
-  if (showSettings) {
-    return (
-      <SettingsPanel
-        settings={settings}
-        projects={projects}
-        onSaveSettings={saveSettings}
-        onSaveProjects={saveProjects}
-        onBack={() => setShowSettings(false)}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-secondary">
       {/* Header */}
       <header className="header">
         <div className="header-brand">
-          <div className="header-logo">S</div>
+          <img src="/logo.png" alt="shipctl" className="header-logo" style={{ width: '24px', height: '24px', borderRadius: '4px' }} />
           <span className="header-title">shipctl</span>
         </div>
         <div className="header-actions">
@@ -145,6 +133,17 @@ function App() {
           <LocalPanel project={activeProject} />
         )}
       </main>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <SettingsPanel
+          settings={settings}
+          projects={projects}
+          onSaveSettings={saveSettings}
+          onSaveProjects={saveProjects}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }
