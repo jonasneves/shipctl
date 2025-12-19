@@ -18,18 +18,16 @@ Built for developers who vibe-code with AI assistants and want deployment to be 
 ### 1. Install the Extension
 
 ```bash
-# Clone and build
 git clone https://github.com/jonasneves/shipctl.git
-cd shipctl/extension
-npm install
-npm run build
-
-# Load in Chrome
-# 1. Go to chrome://extensions
-# 2. Enable "Developer mode"
-# 3. Click "Load unpacked"
-# 4. Select the dist/ folder
+cd shipctl
+make setup
 ```
+
+Then load in Chrome:
+1. Go to `chrome://extensions`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select the `extension/dist` folder
 
 ### 2. Configure Your Projects
 
@@ -51,8 +49,29 @@ Click the extension icon → Settings → Add your first project:
 For starting/stopping local dev servers from the browser:
 
 ```bash
-cd native-host
-./install.sh <extension-id> chrome
+# Get the extension ID from chrome://extensions after loading
+make install-native ID=<extension-id>
+```
+
+## Make Commands
+
+```
+make help           # Show all commands
+
+# Development
+make install        # Install dependencies
+make dev            # Start dev server with hot reload
+make build          # Build for production
+make lint           # Run linter
+make clean          # Remove build artifacts
+
+# Extension
+make setup          # Install + build (first time)
+make build-ext      # Build and show load instructions
+make open-ext       # Open chrome://extensions
+
+# Native Host
+make install-native ID=<ext-id> [BROWSER=chrome]
 ```
 
 ## Features
@@ -149,7 +168,7 @@ Required for GitHub Actions integration:
 
 ## Roadmap
 
-- [ ] Multi-project support
+- [x] Multi-project support
 - [ ] Workflow run history
 - [ ] Log streaming
 - [ ] Firefox support
