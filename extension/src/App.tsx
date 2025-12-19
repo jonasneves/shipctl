@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Rocket, Activity, Terminal } from 'lucide-react';
+import { Rocket, Activity, Terminal, Settings } from 'lucide-react';
 import ProjectsPanel from './components/ProjectsPanel';
 import DeployPanel from './components/DeployPanel';
 import ServicesPanel from './components/ServicesPanel';
@@ -52,38 +52,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-secondary">
-      {/* Header */}
+      {/* Header with segmented control */}
       <header className="header">
-        <div className="header-brand">
-          <img src="/logo.png" alt="shipctl" className="header-logo" style={{ width: '24px', height: '24px', borderRadius: '4px' }} />
-          <span className="header-title">shipctl</span>
-        </div>
-        <div className="header-actions">
-          <button onClick={() => setShowSettings(true)} className="btn-header" title="Settings">
-            <Settings className="w-4 h-4" />
-          </button>
-        </div>
-      </header>
-
-      {/* Sub-header with project selector */}
-      <div className="subheader">
-        <div className="subheader-left">
-          <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
-          <button
-            onClick={() => setActiveTab('projects')}
-            className="subheader-title hover:underline cursor-pointer bg-transparent border-none p-0"
-          >
-            {activeProject?.name || 'Select project...'}
-          </button>
-        </div>
-        {activeProject && (
-          <span className="text-xs text-muted">{activeProject.repo}</span>
-        )}
-      </div>
-
-      {/* Segmented Control */}
-      {activeTab !== 'projects' && (
-        <div className="px-4 py-3 bg-primary border-b border-default flex justify-center">
+        {activeTab !== 'projects' && (
           <div className="segmented-control">
             <button
               onClick={() => setActiveTab('deploy')}
@@ -107,8 +78,29 @@ function App() {
               Local
             </button>
           </div>
+        )}
+        <div className="header-actions">
+          <button onClick={() => setShowSettings(true)} className="btn-header" title="Settings">
+            <Settings className="w-4 h-4" />
+          </button>
         </div>
-      )}
+      </header>
+
+      {/* Sub-header with project selector */}
+      <div className="subheader">
+        <div className="subheader-left">
+          <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
+          <button
+            onClick={() => setActiveTab('projects')}
+            className="subheader-title hover:underline cursor-pointer bg-transparent border-none p-0"
+          >
+            {activeProject?.name || 'Select project...'}
+          </button>
+        </div>
+        {activeProject && (
+          <span className="text-xs text-muted">{activeProject.repo}</span>
+        )}
+      </div>
 
       {/* Content */}
       <main>
