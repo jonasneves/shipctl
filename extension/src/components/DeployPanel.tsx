@@ -193,7 +193,7 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  {getStatusIcon(run)}
+                  {getStatusIcon(run ?? null)}
                   <span className="text-sm font-medium text-slate-200">
                     {workflowName}
                   </span>
