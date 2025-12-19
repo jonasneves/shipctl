@@ -149,21 +149,25 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
 
       {/* Services */}
       <div className="space-y-2">
-        {services.map((service) => (
-          <div key={service.name} className="card p-4">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-primary">
-                  {service.name}
+        {services.map((service) => {
+          const accentClass = service.status === 'ok' ? 'success' : 
+                              service.status === 'down' ? 'danger' : '';
+          return (
+            <div key={service.name} className={`card-accent ${accentClass} p-4`}>
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-primary">
+                    {service.name}
+                  </div>
+                  <div className="text-xs text-muted truncate mt-0.5">
+                    {service.url}
+                  </div>
                 </div>
-                <div className="text-xs text-muted truncate mt-0.5">
-                  {service.url}
-                </div>
+                {getStatusBadge(service.status)}
               </div>
-              {getStatusBadge(service.status)}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {lastCheck && (

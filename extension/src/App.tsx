@@ -73,69 +73,65 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary">
-      {/* Header */}
-      <header className="sticky top-0 z-10">
-        <div className="flex items-center justify-between px-4 py-3 header-gradient">
+    <div className="min-h-screen bg-primary">
+      {/* Header - Solid Navy */}
+      <header className="header">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur">
+            <div className="header-icon">
               <span className="text-sm font-bold text-white">S</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-semibold text-white text-sm">shipctl</span>
-              <span className="text-[10px] text-white/70">Deploy from your browser</span>
+              <span className="header-title text-base">shipctl</span>
+              <span className="header-subtitle">Deploy from your browser</span>
             </div>
           </div>
           <button
             onClick={() => setShowSettings(true)}
-            className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white/20 transition-colors text-white"
+            className="btn-icon"
             title="Settings"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Project Selector */}
-        <div className="px-4 py-3 bg-primary border-b border-default">
-          <button
-            onClick={() => setActiveTab('projects')}
-            className="w-full flex items-center justify-between px-3 py-2.5 card card-hover transition-all"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
-              <span className="text-sm text-primary truncate font-medium">
-                {activeProject?.name || 'Select a project'}
-              </span>
-            </div>
-            <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Tab Navigation */}
-        {activeTab !== 'projects' && (
-          <div className="flex px-4 bg-primary border-b border-default">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
-                  activeTab === tab.id
-                    ? 'border-[#1e3a5f] text-[#1e3a5f]'
-                    : 'border-transparent text-secondary hover:text-primary'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
+      {/* Project Selector */}
+      <div className="px-4 py-3 bg-secondary border-b border-default">
+        <button
+          onClick={() => setActiveTab('projects')}
+          className="w-full flex items-center justify-between px-3 py-2.5 card card-hover transition-all"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
+            <span className="text-sm text-primary truncate font-medium">
+              {activeProject?.name || 'Select a project'}
+            </span>
+          </div>
+          <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Tab Navigation */}
+      {activeTab !== 'projects' && (
+        <div className="tab-nav">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
-      <main className="p-4 bg-secondary min-h-screen">
+      <main className="p-5 bg-primary">
         {activeTab === 'projects' && (
           <ProjectsPanel
             projects={projects}

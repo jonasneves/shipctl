@@ -165,7 +165,7 @@ export default function LocalPanel({ project }: LocalPanelProps) {
   return (
     <div className="space-y-4">
       {/* Status Card */}
-      <div className="card p-4">
+      <div className={`card-accent ${status === 'running' ? 'success' : status === 'stopped' ? '' : 'warning'} p-4`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span

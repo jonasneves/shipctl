@@ -212,8 +212,12 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
           const isTriggering = triggering === workflow;
           const workflowName = workflow.replace('.yml', '').replace('.yaml', '');
 
+          const cardClass = run?.conclusion === 'failure' ? 'danger' : 
+                           run?.status === 'in_progress' ? 'warning' : 
+                           run?.conclusion === 'success' ? 'success' : '';
+
           return (
-            <div key={workflow} className="card p-4">
+            <div key={workflow} className={`card-accent ${cardClass} p-4`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-primary">
@@ -226,7 +230,7 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
                     href={run.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-secondary hover:text-info transition-colors"
+                    className="text-muted hover:text-primary transition-colors"
                     title="View on GitHub"
                   >
                     <ExternalLink className="w-4 h-4" />
@@ -241,7 +245,7 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
                 <button
                   onClick={() => triggerWorkflow(workflow)}
                   disabled={isTriggering || loading}
-                  className="btn btn-primary text-xs"
+                  className="btn btn-primary btn-sm"
                 >
                   {isTriggering ? (
                     <>
