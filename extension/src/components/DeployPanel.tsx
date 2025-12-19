@@ -100,7 +100,6 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
         throw new Error(`Failed to trigger: ${response.status}`);
       }
 
-      // Refresh after a delay
       setTimeout(fetchWorkflowRuns, 2000);
     } catch (err) {
       console.error('Failed to trigger workflow:', err);
@@ -109,18 +108,45 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
     }
   };
 
-  const getStatusIcon = (run: WorkflowRun | null) => {
-    if (!run) return <Clock className="w-4 h-4 text-slate-500" />;
+  const getStatusBadge = (run: WorkflowRun | null) => {
+    if (!run) {
+      return (
+        <span className="badge badge-neutral">
+          <Clock className="w-3 h-3" />
+          No runs
+        </span>
+      );
+    }
     if (run.status === 'in_progress' || run.status === 'queued') {
-      return <RefreshCw className="w-4 h-4 text-yellow-400 animate-spin" />;
+      return (
+        <span className="badge badge-warning">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Running
+        </span>
+      );
     }
     if (run.conclusion === 'success') {
-      return <CheckCircle className="w-4 h-4 text-green-500" />;
+      return (
+        <span className="badge badge-success">
+          <CheckCircle className="w-3 h-3" />
+          Success
+        </span>
+      );
     }
     if (run.conclusion === 'failure') {
-      return <XCircle className="w-4 h-4 text-red-500" />;
+      return (
+        <span className="badge badge-danger">
+          <XCircle className="w-3 h-3" />
+          Failed
+        </span>
+      );
     }
-    return <Clock className="w-4 h-4 text-slate-500" />;
+    return (
+      <span className="badge badge-neutral">
+        <Clock className="w-3 h-3" />
+        Unknown
+      </span>
+    );
   };
 
   const formatTime = (dateStr: string) => {
@@ -138,19 +164,19 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
 
   if (!project) {
     return (
-      <div className="text-center py-8">
-        <Rocket className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-        <p className="text-slate-400">Select a project to deploy</p>
+      <div className="text-center py-12">
+        <Rocket className="w-12 h-12 mx-auto mb-3 text-muted" />
+        <p className="text-secondary">Select a project to deploy</p>
       </div>
     );
   }
 
   if (!githubToken) {
     return (
-      <div className="text-center py-8">
-        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-500/50" />
-        <p className="text-slate-400 mb-2">GitHub token required</p>
-        <p className="text-xs text-slate-500">Configure in Settings</p>
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning opacity-50" />
+        <p className="text-secondary mb-1">GitHub token required</p>
+        <p className="text-xs text-muted">Configure in Settings</p>
       </div>
     );
   }
@@ -158,21 +184,21 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
   return (
     <div className="space-y-4">
       {error && (
-        <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/50 text-red-400 text-xs">
-          {error}
+        <div className="p-3 card border-l-4 border-l-red-500">
+          <p className="text-sm text-danger">{error}</p>
         </div>
       )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+        <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
           <Rocket className="w-4 h-4" />
           Workflows
         </h2>
         <button
           onClick={fetchWorkflowRuns}
           disabled={loading}
-          className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+          className="btn-ghost text-xs flex items-center gap-1 px-2 py-1"
         >
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
           Refresh
@@ -187,49 +213,47 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
           const workflowName = workflow.replace('.yml', '').replace('.yaml', '');
 
           return (
-            <div
-              key={workflow}
-              className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(run ?? null)}
-                  <span className="text-sm font-medium text-slate-200">
+            <div key={workflow} className="card p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-primary">
                     {workflowName}
                   </span>
+                  {getStatusBadge(run ?? null)}
                 </div>
                 {run && (
                   <a
                     href={run.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-white transition-colors"
+                    className="text-secondary hover:text-info transition-colors"
                     title="View on GitHub"
                   >
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-4 h-4" />
                   </a>
                 )}
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500">
-                  {run ? formatTime(run.updated_at) : 'No runs'}
+                <span className="text-xs text-muted">
+                  {run ? `Last run: ${formatTime(run.updated_at)}` : 'No previous runs'}
                 </span>
                 <button
                   onClick={() => triggerWorkflow(workflow)}
                   disabled={isTriggering || loading}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
-                    isTriggering
-                      ? 'bg-slate-700 text-slate-400'
-                      : 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30'
-                  }`}
+                  className="btn btn-primary text-xs"
                 >
                   {isTriggering ? (
-                    <RefreshCw className="w-3 h-3 animate-spin" />
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Deploying...
+                    </>
                   ) : (
-                    <Play className="w-3 h-3" />
+                    <>
+                      <Play className="w-3 h-3" />
+                      Deploy
+                    </>
                   )}
-                  {isTriggering ? 'Triggering...' : 'Deploy'}
                 </button>
               </div>
             </div>
@@ -238,8 +262,9 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
       </div>
 
       {project.workflows.length === 0 && (
-        <div className="text-center py-6 text-slate-500 text-sm">
-          No workflows configured for this project
+        <div className="text-center py-8 card">
+          <p className="text-secondary text-sm">No workflows configured</p>
+          <p className="text-muted text-xs mt-1">Add workflows in Settings</p>
         </div>
       )}
     </div>

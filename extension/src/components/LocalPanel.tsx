@@ -130,35 +130,33 @@ export default function LocalPanel({ project }: LocalPanelProps) {
 
   if (!project) {
     return (
-      <div className="text-center py-8">
-        <Terminal className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-        <p className="text-slate-400">Select a project to manage local server</p>
+      <div className="text-center py-12">
+        <Terminal className="w-12 h-12 mx-auto mb-3 text-muted" />
+        <p className="text-secondary">Select a project to manage local server</p>
       </div>
     );
   }
 
   if (!project.localCommand) {
     return (
-      <div className="text-center py-8">
-        <Terminal className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-        <p className="text-slate-400 mb-2">No local command configured</p>
-        <p className="text-xs text-slate-500">
-          Add a local command in Settings
-        </p>
+      <div className="text-center py-12">
+        <Terminal className="w-12 h-12 mx-auto mb-3 text-muted" />
+        <p className="text-secondary mb-1">No local command configured</p>
+        <p className="text-xs text-muted">Add a local command in Settings</p>
       </div>
     );
   }
 
   if (nativeAvailable === false) {
     return (
-      <div className="text-center py-8">
-        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-amber-500/50" />
-        <p className="text-slate-400 mb-2">Native messaging not installed</p>
-        <p className="text-xs text-slate-500 mb-4">
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning opacity-50" />
+        <p className="text-secondary mb-2">Native messaging not installed</p>
+        <p className="text-xs text-muted mb-4">
           Install the native host to control local servers
         </p>
-        <code className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300">
-          ./native-host/install.sh
+        <code className="text-xs bg-tertiary px-3 py-1.5 rounded text-secondary">
+          make install-native ID=&lt;ext-id&gt;
         </code>
       </div>
     );
@@ -166,35 +164,30 @@ export default function LocalPanel({ project }: LocalPanelProps) {
 
   return (
     <div className="space-y-4">
-      {/* Status */}
-      <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-        <div className="flex items-center justify-between mb-2">
+      {/* Status Card */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div
-              className={`w-2 h-2 rounded-full ${
+            <span
+              className={`status-dot ${
                 status === 'running'
-                  ? 'bg-green-500'
+                  ? 'status-dot-success'
                   : status === 'stopped'
-                  ? 'bg-slate-500'
-                  : 'bg-yellow-500'
+                  ? 'status-dot-neutral'
+                  : 'status-dot-warning'
               }`}
             />
-            <span className="text-sm text-slate-200">
+            <span className="text-sm font-medium text-primary">
               {status === 'running' ? 'Running' : status === 'stopped' ? 'Stopped' : 'Unknown'}
             </span>
-            {pid && (
-              <span className="text-xs text-slate-500">PID {pid}</span>
-            )}
+            {pid && <span className="text-xs text-muted">PID {pid}</span>}
           </div>
-          <button
-            onClick={checkStatus}
-            className="text-xs text-slate-400 hover:text-white"
-          >
-            <RefreshCw className="w-3 h-3" />
+          <button onClick={checkStatus} className="btn-ghost p-1">
+            <RefreshCw className="w-3.5 h-3.5 text-secondary" />
           </button>
         </div>
 
-        <div className="text-xs text-slate-500 font-mono truncate mb-3">
+        <div className="text-xs text-muted font-mono bg-tertiary px-2 py-1.5 rounded mb-4 truncate">
           {project.localCommand}
         </div>
 
@@ -203,26 +196,23 @@ export default function LocalPanel({ project }: LocalPanelProps) {
             <button
               onClick={startProcess}
               disabled={busy}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded bg-green-600/20 text-green-400 hover:bg-green-600/30 transition-colors disabled:opacity-50"
+              className="btn btn-primary flex-1"
             >
-              <Play className="w-3 h-3" />
+              <Play className="w-3.5 h-3.5" />
               Start
             </button>
           ) : (
             <button
               onClick={stopProcess}
               disabled={busy}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded bg-red-600/20 text-red-400 hover:bg-red-600/30 transition-colors disabled:opacity-50"
+              className="btn btn-danger flex-1"
             >
-              <Square className="w-3 h-3" />
+              <Square className="w-3.5 h-3.5" />
               Stop
             </button>
           )}
-          <button
-            onClick={fetchLogs}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs rounded bg-slate-700/50 text-slate-300 hover:bg-slate-700 transition-colors"
-          >
-            <FileText className="w-3 h-3" />
+          <button onClick={fetchLogs} className="btn btn-secondary">
+            <FileText className="w-3.5 h-3.5" />
             Logs
           </button>
         </div>
@@ -230,18 +220,18 @@ export default function LocalPanel({ project }: LocalPanelProps) {
 
       {/* Error */}
       {error && (
-        <div className="p-3 rounded-lg bg-red-900/20 border border-red-700/50 text-red-400 text-xs">
-          {error}
+        <div className="card p-3 border-l-4 border-l-red-500">
+          <p className="text-sm text-danger">{error}</p>
         </div>
       )}
 
       {/* Logs */}
       {logTail && (
-        <div className="rounded-lg bg-slate-900 border border-slate-700/50 overflow-hidden">
-          <div className="px-3 py-1.5 bg-slate-800/50 border-b border-slate-700/50 text-xs text-slate-400">
-            Recent Logs
+        <div className="card overflow-hidden">
+          <div className="px-3 py-2 bg-tertiary border-b border-default">
+            <span className="text-xs font-medium text-secondary">Recent Logs</span>
           </div>
-          <pre className="p-3 text-[10px] leading-relaxed text-slate-300 overflow-auto max-h-48 whitespace-pre-wrap">
+          <pre className="p-3 text-[11px] leading-relaxed text-secondary overflow-auto max-h-48 whitespace-pre-wrap bg-primary">
             {logTail}
           </pre>
         </div>

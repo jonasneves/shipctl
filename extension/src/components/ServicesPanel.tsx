@@ -80,29 +80,46 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
     }
   }, [project, buildServicesList, checkHealth]);
 
-  const getStatusIcon = (status: string) => {
-    if (status === 'ok') return <CheckCircle className="w-4 h-4 text-green-500" />;
-    if (status === 'down') return <XCircle className="w-4 h-4 text-red-500" />;
-    return <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />;
+  const getStatusBadge = (status: string) => {
+    if (status === 'ok') {
+      return (
+        <span className="badge badge-success">
+          <CheckCircle className="w-3 h-3" />
+          Healthy
+        </span>
+      );
+    }
+    if (status === 'down') {
+      return (
+        <span className="badge badge-danger">
+          <XCircle className="w-3 h-3" />
+          Down
+        </span>
+      );
+    }
+    return (
+      <span className="badge badge-neutral">
+        <RefreshCw className="w-3 h-3 animate-spin" />
+        Checking
+      </span>
+    );
   };
 
   if (!project) {
     return (
-      <div className="text-center py-8">
-        <Activity className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-        <p className="text-slate-400">Select a project to view services</p>
+      <div className="text-center py-12">
+        <Activity className="w-12 h-12 mx-auto mb-3 text-muted" />
+        <p className="text-secondary">Select a project to view services</p>
       </div>
     );
   }
 
   if (services.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Globe className="w-12 h-12 mx-auto mb-3 text-slate-600" />
-        <p className="text-slate-400 mb-2">No environments configured</p>
-        <p className="text-xs text-slate-500">
-          Add production/staging URLs in Settings
-        </p>
+      <div className="text-center py-12">
+        <Globe className="w-12 h-12 mx-auto mb-3 text-muted" />
+        <p className="text-secondary mb-1">No environments configured</p>
+        <p className="text-xs text-muted">Add production/staging URLs in Settings</p>
       </div>
     );
   }
@@ -112,46 +129,45 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
   return (
     <div className="space-y-4">
       {/* Summary */}
-      <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-slate-700/50">
-        <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-slate-400" />
-          <span className="text-sm text-slate-300">
-            {healthyCount}/{services.length} healthy
-          </span>
+      <div className="card p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-secondary" />
+            <span className="text-sm font-medium text-primary">
+              {healthyCount}/{services.length} healthy
+            </span>
+          </div>
+          <button
+            onClick={() => checkHealth(services)}
+            className="btn-ghost text-xs flex items-center gap-1 px-2 py-1"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Check
+          </button>
         </div>
-        <button
-          onClick={() => checkHealth(services)}
-          className="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Check
-        </button>
       </div>
 
       {/* Services */}
       <div className="space-y-2">
         {services.map((service) => (
-          <div
-            key={service.name}
-            className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700/50"
-          >
-            <div className="flex items-center gap-2">
-              {getStatusIcon(service.status)}
-              <div>
-                <div className="text-sm font-medium text-slate-200">
+          <div key={service.name} className="card p-4">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-primary">
                   {service.name}
                 </div>
-                <div className="text-xs text-slate-500 truncate max-w-[180px]">
+                <div className="text-xs text-muted truncate mt-0.5">
                   {service.url}
                 </div>
               </div>
+              {getStatusBadge(service.status)}
             </div>
           </div>
         ))}
       </div>
 
       {lastCheck && (
-        <div className="text-xs text-slate-500 text-center">
+        <div className="text-xs text-muted text-center">
           Last check: {lastCheck.toLocaleTimeString()}
         </div>
       )}
