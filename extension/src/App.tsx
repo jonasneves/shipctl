@@ -19,7 +19,6 @@ function App() {
     defaultProfile: 'development',
   });
 
-  // Load from storage on mount
   useEffect(() => {
     chrome.storage.local.get(['projects', 'settings', 'activeProjectId'], (result) => {
       if (result.projects) {
@@ -36,29 +35,20 @@ function App() {
     });
   }, []);
 
-  // Save settings
   const saveSettings = (newSettings: SettingsType) => {
     setSettings(newSettings);
     chrome.storage.local.set({ settings: newSettings });
   };
 
-  // Save projects
   const saveProjects = (newProjects: Project[]) => {
     setProjects(newProjects);
     chrome.storage.local.set({ projects: newProjects });
   };
 
-  // Set active project
   const selectProject = (project: Project) => {
     setActiveProject(project);
     chrome.storage.local.set({ activeProjectId: project.id });
   };
-
-  const tabs: { id: Tab; label: string; icon: typeof Rocket }[] = [
-    { id: 'deploy', label: 'Deploy', icon: Rocket },
-    { id: 'services', label: 'Services', icon: Activity },
-    { id: 'local', label: 'Local', icon: Terminal },
-  ];
 
   if (showSettings) {
     return (
@@ -73,65 +63,67 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-primary">
-      {/* Header - Solid Navy */}
+    <div className="min-h-screen bg-secondary">
+      {/* Header */}
       <header className="header">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="header-icon">
-              <span className="text-sm font-bold text-white">S</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="header-title text-base">shipctl</span>
-              <span className="header-subtitle">Deploy from your browser</span>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="btn-icon"
-            title="Settings"
-          >
-            <Settings className="w-5 h-5" />
+        <div className="header-brand">
+          <div className="header-logo">S</div>
+          <span className="header-title">shipctl</span>
+        </div>
+        <div className="header-actions">
+          <button onClick={() => setShowSettings(true)} className="btn-header" title="Settings">
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Project Selector */}
-      <div className="px-4 py-3 bg-secondary border-b border-default">
-        <button
-          onClick={() => setActiveTab('projects')}
-          className="w-full flex items-center justify-between px-3 py-2.5 card card-hover transition-all"
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
-            <span className="text-sm text-primary truncate font-medium">
-              {activeProject?.name || 'Select a project'}
-            </span>
-          </div>
-          <svg className="w-4 h-4 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+      {/* Sub-header with project selector */}
+      <div className="subheader">
+        <div className="subheader-left">
+          <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
+          <button
+            onClick={() => setActiveTab('projects')}
+            className="subheader-title hover:underline cursor-pointer bg-transparent border-none p-0"
+          >
+            {activeProject?.name || 'Select project...'}
+          </button>
+        </div>
+        {activeProject && (
+          <span className="text-xs text-muted">{activeProject.repo}</span>
+        )}
       </div>
 
-      {/* Tab Navigation */}
+      {/* Segmented Control */}
       {activeTab !== 'projects' && (
-        <div className="tab-nav">
-          {tabs.map((tab) => (
+        <div className="px-4 py-3 bg-primary border-b border-default flex justify-center">
+          <div className="segmented-control">
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab('deploy')}
+              className={`segment ${activeTab === 'deploy' ? 'active' : ''}`}
             >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
+              <Rocket className="w-3.5 h-3.5" />
+              Deploy
             </button>
-          ))}
+            <button
+              onClick={() => setActiveTab('services')}
+              className={`segment ${activeTab === 'services' ? 'active' : ''}`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Services
+            </button>
+            <button
+              onClick={() => setActiveTab('local')}
+              className={`segment ${activeTab === 'local' ? 'active' : ''}`}
+            >
+              <Terminal className="w-3.5 h-3.5" />
+              Local
+            </button>
+          </div>
         </div>
       )}
 
       {/* Content */}
-      <main className="p-5 bg-primary">
+      <main>
         {activeTab === 'projects' && (
           <ProjectsPanel
             projects={projects}
@@ -144,10 +136,7 @@ function App() {
           />
         )}
         {activeTab === 'deploy' && (
-          <DeployPanel
-            project={activeProject}
-            githubToken={settings.githubToken}
-          />
+          <DeployPanel project={activeProject} githubToken={settings.githubToken} />
         )}
         {activeTab === 'services' && (
           <ServicesPanel project={activeProject} />

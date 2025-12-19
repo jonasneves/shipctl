@@ -20,25 +20,13 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
     const list: ServiceHealth[] = [];
 
     if (proj.environments?.production) {
-      list.push({
-        name: 'Production',
-        url: proj.environments.production,
-        status: 'checking',
-      });
+      list.push({ name: 'Production', url: proj.environments.production, status: 'checking' });
     }
     if (proj.environments?.staging) {
-      list.push({
-        name: 'Staging',
-        url: proj.environments.staging,
-        status: 'checking',
-      });
+      list.push({ name: 'Staging', url: proj.environments.staging, status: 'checking' });
     }
     if (proj.localPort) {
-      list.push({
-        name: 'Local',
-        url: `http://localhost:${proj.localPort}`,
-        status: 'checking',
-      });
+      list.push({ name: 'Local', url: `http://localhost:${proj.localPort}`, status: 'checking' });
     }
 
     return list;
@@ -83,7 +71,7 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
   const getStatusBadge = (status: string) => {
     if (status === 'ok') {
       return (
-        <span className="badge badge-success">
+        <span className="status-badge status-badge-success">
           <CheckCircle className="w-3 h-3" />
           Healthy
         </span>
@@ -91,14 +79,14 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
     }
     if (status === 'down') {
       return (
-        <span className="badge badge-danger">
+        <span className="status-badge status-badge-danger">
           <XCircle className="w-3 h-3" />
           Down
         </span>
       );
     }
     return (
-      <span className="badge badge-neutral">
+      <span className="status-badge status-badge-neutral">
         <RefreshCw className="w-3 h-3 animate-spin" />
         Checking
       </span>
@@ -107,19 +95,20 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
 
   if (!project) {
     return (
-      <div className="text-center py-12">
-        <Activity className="w-12 h-12 mx-auto mb-3 text-muted" />
-        <p className="text-secondary">Select a project to view services</p>
+      <div className="empty-state">
+        <Activity className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">No project selected</p>
+        <p className="empty-state-text">Select a project to view services</p>
       </div>
     );
   }
 
   if (services.length === 0) {
     return (
-      <div className="text-center py-12">
-        <Globe className="w-12 h-12 mx-auto mb-3 text-muted" />
-        <p className="text-secondary mb-1">No environments configured</p>
-        <p className="text-xs text-muted">Add production/staging URLs in Settings</p>
+      <div className="empty-state">
+        <Globe className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">No environments configured</p>
+        <p className="empty-state-text">Add production/staging URLs in Settings</p>
       </div>
     );
   }
@@ -127,52 +116,43 @@ export default function ServicesPanel({ project }: ServicesPanelProps) {
   const healthyCount = services.filter((s) => s.status === 'ok').length;
 
   return (
-    <div className="space-y-4">
-      {/* Summary */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="w-4 h-4 text-secondary" />
-            <span className="text-sm font-medium text-primary">
-              {healthyCount}/{services.length} healthy
-            </span>
-          </div>
-          <button
-            onClick={() => checkHealth(services)}
-            className="btn-ghost text-xs flex items-center gap-1 px-2 py-1"
-          >
-            <RefreshCw className="w-3 h-3" />
-            Check
-          </button>
+    <div>
+      {/* Section header with summary */}
+      <div className="section-header flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="section-title">Services</span>
+          <span className="counter">{healthyCount}/{services.length}</span>
         </div>
+        <button onClick={() => checkHealth(services)} className="btn btn-ghost btn-sm">
+          <RefreshCw className="w-3 h-3" />
+        </button>
       </div>
 
-      {/* Services */}
-      <div className="space-y-2">
-        {services.map((service) => {
-          const accentClass = service.status === 'ok' ? 'success' : 
-                              service.status === 'down' ? 'danger' : '';
-          return (
-            <div key={service.name} className={`card-accent ${accentClass} p-4`}>
-              <div className="flex items-center justify-between">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-primary">
-                    {service.name}
-                  </div>
-                  <div className="text-xs text-muted truncate mt-0.5">
-                    {service.url}
-                  </div>
-                </div>
-                {getStatusBadge(service.status)}
+      {/* Service list */}
+      <div className="bg-primary">
+        {services.map((service) => (
+          <div key={service.name} className="list-item">
+            <div className="list-item-content">
+              <div className="list-item-icon">
+                <Globe className="w-4 h-4 text-secondary" />
+              </div>
+              <div className="list-item-text">
+                <div className="list-item-title">{service.name}</div>
+                <div className="list-item-subtitle mono">{service.url}</div>
               </div>
             </div>
-          );
-        })}
+            <div className="list-item-actions">
+              {getStatusBadge(service.status)}
+            </div>
+          </div>
+        ))}
       </div>
 
       {lastCheck && (
-        <div className="text-xs text-muted text-center">
-          Last check: {lastCheck.toLocaleTimeString()}
+        <div className="px-4 py-2 text-center">
+          <span className="text-xs text-muted">
+            Last check: {lastCheck.toLocaleTimeString()}
+          </span>
         </div>
       )}
     </div>

@@ -16,12 +16,10 @@ export default function ProjectsPanel({
 }: ProjectsPanelProps) {
   if (projects.length === 0) {
     return (
-      <div className="text-center py-12">
-        <FolderGit2 className="w-12 h-12 mx-auto mb-3 text-muted" />
-        <h3 className="text-base font-medium text-primary mb-2">No projects yet</h3>
-        <p className="text-sm text-secondary mb-4">
-          Add a project to start shipping
-        </p>
+      <div className="empty-state">
+        <FolderGit2 className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">No projects yet</p>
+        <p className="empty-state-text mb-4">Add a project to start shipping</p>
         <button onClick={onAddProject} className="btn btn-primary">
           <Plus className="w-4 h-4" />
           Add Project
@@ -31,43 +29,44 @@ export default function ProjectsPanel({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-primary">Projects</h2>
-        <button
-          onClick={onAddProject}
-          className="btn-ghost text-xs flex items-center gap-1 px-2 py-1 text-info"
-        >
+    <div>
+      {/* Section header */}
+      <div className="section-header flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="section-title">Projects</span>
+          <span className="counter">{projects.length}</span>
+        </div>
+        <button onClick={onAddProject} className="btn btn-ghost btn-sm text-info">
           <Plus className="w-3 h-3" />
           Add
         </button>
       </div>
 
-      <div className="space-y-2">
-        {projects.map((project) => (
-          <button
-            key={project.id}
-            onClick={() => onSelect(project)}
-            className={`w-full flex items-center justify-between p-3 card card-hover transition-colors ${
-              activeProject?.id === project.id
-                ? 'border-green-500/50 bg-green-500/5'
-                : ''
-            }`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <FolderGit2 className="w-5 h-5 text-secondary flex-shrink-0" />
-              <div className="text-left min-w-0">
-                <div className="text-sm font-medium text-primary truncate">
-                  {project.name}
+      {/* Project list */}
+      <div className="bg-primary">
+        {projects.map((project) => {
+          const isActive = activeProject?.id === project.id;
+          return (
+            <button
+              key={project.id}
+              onClick={() => onSelect(project)}
+              className={`list-item w-full text-left ${isActive ? 'bg-success/5' : ''}`}
+            >
+              <div className="list-item-content">
+                <div className={`list-item-icon ${isActive ? 'bg-success/10' : ''}`}>
+                  <FolderGit2 className={`w-4 h-4 ${isActive ? 'text-success' : 'text-secondary'}`} />
                 </div>
-                <div className="text-xs text-muted truncate">{project.repo}</div>
+                <div className="list-item-text">
+                  <div className="list-item-title">{project.name}</div>
+                  <div className="list-item-subtitle">{project.repo}</div>
+                </div>
               </div>
-            </div>
-            {activeProject?.id === project.id && (
-              <Check className="w-4 h-4 text-success flex-shrink-0" />
-            )}
-          </button>
-        ))}
+              {isActive && (
+                <Check className="w-4 h-4 text-success flex-shrink-0" />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

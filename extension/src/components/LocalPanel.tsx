@@ -1,12 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import {
-  Terminal,
-  Play,
-  Square,
-  RefreshCw,
-  FileText,
-  AlertCircle,
-} from 'lucide-react';
+import { Terminal, Play, Square, RefreshCw, FileText, AlertCircle } from 'lucide-react';
 import { Project, NativeResponse } from '../types';
 
 interface LocalPanelProps {
@@ -130,32 +123,31 @@ export default function LocalPanel({ project }: LocalPanelProps) {
 
   if (!project) {
     return (
-      <div className="text-center py-12">
-        <Terminal className="w-12 h-12 mx-auto mb-3 text-muted" />
-        <p className="text-secondary">Select a project to manage local server</p>
+      <div className="empty-state">
+        <Terminal className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">No project selected</p>
+        <p className="empty-state-text">Select a project to manage local server</p>
       </div>
     );
   }
 
   if (!project.localCommand) {
     return (
-      <div className="text-center py-12">
-        <Terminal className="w-12 h-12 mx-auto mb-3 text-muted" />
-        <p className="text-secondary mb-1">No local command configured</p>
-        <p className="text-xs text-muted">Add a local command in Settings</p>
+      <div className="empty-state">
+        <Terminal className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">No local command configured</p>
+        <p className="empty-state-text">Add a local command in Settings</p>
       </div>
     );
   }
 
   if (nativeAvailable === false) {
     return (
-      <div className="text-center py-12">
-        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning opacity-50" />
-        <p className="text-secondary mb-2">Native messaging not installed</p>
-        <p className="text-xs text-muted mb-4">
-          Install the native host to control local servers
-        </p>
-        <code className="text-xs bg-tertiary px-3 py-1.5 rounded text-secondary">
+      <div className="empty-state">
+        <AlertCircle className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">Native messaging not installed</p>
+        <p className="empty-state-text mb-4">Install to control local servers</p>
+        <code className="text-xs bg-secondary px-3 py-1.5 rounded mono text-secondary">
           make install-native ID=&lt;ext-id&gt;
         </code>
       </div>
@@ -163,77 +155,77 @@ export default function LocalPanel({ project }: LocalPanelProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Status Card */}
-      <div className={`card-accent ${status === 'running' ? 'success' : status === 'stopped' ? '' : 'warning'} p-4`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span
-              className={`status-dot ${
-                status === 'running'
-                  ? 'status-dot-success'
-                  : status === 'stopped'
-                  ? 'status-dot-neutral'
-                  : 'status-dot-warning'
-              }`}
-            />
-            <span className="text-sm font-medium text-primary">
-              {status === 'running' ? 'Running' : status === 'stopped' ? 'Stopped' : 'Unknown'}
-            </span>
-            {pid && <span className="text-xs text-muted">PID {pid}</span>}
+    <div>
+      {/* Section header */}
+      <div className="section-header flex items-center justify-between">
+        <span className="section-title">Local Server</span>
+        <button onClick={checkStatus} className="btn btn-ghost btn-sm">
+          <RefreshCw className="w-3 h-3" />
+        </button>
+      </div>
+
+      {/* Status box */}
+      <div className="m-4">
+        <div className="box">
+          <div className="box-header">
+            <div className="flex items-center gap-2">
+              <span className={`status-dot ${
+                status === 'running' ? 'status-dot-success' :
+                status === 'stopped' ? 'status-dot-neutral' : 'status-dot-warning'
+              }`} />
+              <span className="box-header-title">
+                {status === 'running' ? 'Running' : status === 'stopped' ? 'Stopped' : 'Unknown'}
+              </span>
+              {pid && <span className="text-xs text-muted">PID {pid}</span>}
+            </div>
           </div>
-          <button onClick={checkStatus} className="btn-ghost p-1">
-            <RefreshCw className="w-3.5 h-3.5 text-secondary" />
-          </button>
-        </div>
-
-        <div className="text-xs text-muted font-mono bg-tertiary px-2 py-1.5 rounded mb-4 truncate">
-          {project.localCommand}
-        </div>
-
-        <div className="flex gap-2">
-          {status !== 'running' ? (
-            <button
-              onClick={startProcess}
-              disabled={busy}
-              className="btn btn-primary flex-1"
-            >
-              <Play className="w-3.5 h-3.5" />
-              Start
-            </button>
-          ) : (
-            <button
-              onClick={stopProcess}
-              disabled={busy}
-              className="btn btn-danger flex-1"
-            >
-              <Square className="w-3.5 h-3.5" />
-              Stop
-            </button>
-          )}
-          <button onClick={fetchLogs} className="btn btn-secondary">
-            <FileText className="w-3.5 h-3.5" />
-            Logs
-          </button>
+          <div className="box-body">
+            <div className="mono text-xs text-secondary bg-secondary px-3 py-2 rounded mb-4 truncate">
+              {project.localCommand}
+            </div>
+            <div className="flex gap-2">
+              {status !== 'running' ? (
+                <button onClick={startProcess} disabled={busy} className="btn btn-primary flex-1">
+                  <Play className="w-3.5 h-3.5" />
+                  Start
+                </button>
+              ) : (
+                <button onClick={stopProcess} disabled={busy} className="btn btn-danger flex-1">
+                  <Square className="w-3.5 h-3.5" />
+                  Stop
+                </button>
+              )}
+              <button onClick={fetchLogs} className="btn btn-secondary">
+                <FileText className="w-3.5 h-3.5" />
+                Logs
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Error */}
       {error && (
-        <div className="card p-3 border-l-4 border-l-red-500">
-          <p className="text-sm text-danger">{error}</p>
+        <div className="mx-4 mb-4">
+          <div className="box border-danger/30 bg-danger/5">
+            <div className="box-body py-3">
+              <p className="text-xs text-danger">{error}</p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Logs */}
       {logTail && (
-        <div className="card overflow-hidden">
-          <div className="px-3 py-2 bg-tertiary border-b border-default">
-            <span className="text-xs font-medium text-secondary">Recent Logs</span>
+        <div className="mx-4 mb-4">
+          <div className="box">
+            <div className="box-header">
+              <span className="box-header-title">Recent Logs</span>
+            </div>
+            <pre className="p-3 text-[11px] leading-relaxed text-secondary overflow-auto max-h-48 whitespace-pre-wrap mono">
+              {logTail}
+            </pre>
           </div>
-          <pre className="p-3 text-[11px] leading-relaxed text-secondary overflow-auto max-h-48 whitespace-pre-wrap bg-primary">
-            {logTail}
-          </pre>
         </div>
       )}
     </div>

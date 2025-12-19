@@ -4,7 +4,6 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  Clock,
   Play,
   ExternalLink,
   AlertCircle,
@@ -110,16 +109,11 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
 
   const getStatusBadge = (run: WorkflowRun | null) => {
     if (!run) {
-      return (
-        <span className="badge badge-neutral">
-          <Clock className="w-3 h-3" />
-          No runs
-        </span>
-      );
+      return <span className="status-badge status-badge-neutral">No runs</span>;
     }
     if (run.status === 'in_progress' || run.status === 'queued') {
       return (
-        <span className="badge badge-warning">
+        <span className="status-badge status-badge-warning">
           <RefreshCw className="w-3 h-3 animate-spin" />
           Running
         </span>
@@ -127,7 +121,7 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
     }
     if (run.conclusion === 'success') {
       return (
-        <span className="badge badge-success">
+        <span className="status-badge status-badge-success">
           <CheckCircle className="w-3 h-3" />
           Success
         </span>
@@ -135,18 +129,13 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
     }
     if (run.conclusion === 'failure') {
       return (
-        <span className="badge badge-danger">
+        <span className="status-badge status-badge-danger">
           <XCircle className="w-3 h-3" />
           Failed
         </span>
       );
     }
-    return (
-      <span className="badge badge-neutral">
-        <Clock className="w-3 h-3" />
-        Unknown
-      </span>
-    );
+    return <span className="status-badge status-badge-neutral">Unknown</span>;
   };
 
   const formatTime = (dateStr: string) => {
@@ -164,113 +153,96 @@ export default function DeployPanel({ project, githubToken }: DeployPanelProps) 
 
   if (!project) {
     return (
-      <div className="text-center py-12">
-        <Rocket className="w-12 h-12 mx-auto mb-3 text-muted" />
-        <p className="text-secondary">Select a project to deploy</p>
+      <div className="empty-state">
+        <Rocket className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">No project selected</p>
+        <p className="empty-state-text">Select a project to deploy</p>
       </div>
     );
   }
 
   if (!githubToken) {
     return (
-      <div className="text-center py-12">
-        <AlertCircle className="w-12 h-12 mx-auto mb-3 text-warning opacity-50" />
-        <p className="text-secondary mb-1">GitHub token required</p>
-        <p className="text-xs text-muted">Configure in Settings</p>
+      <div className="empty-state">
+        <AlertCircle className="w-10 h-10 empty-state-icon mx-auto" />
+        <p className="empty-state-title">GitHub token required</p>
+        <p className="empty-state-text">Configure in Settings</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div>
       {error && (
-        <div className="p-3 card border-l-4 border-l-red-500">
-          <p className="text-sm text-danger">{error}</p>
+        <div className="px-4 py-3 bg-danger/10 border-b border-danger/20">
+          <p className="text-xs text-danger">{error}</p>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
-          <Rocket className="w-4 h-4" />
-          Workflows
-        </h2>
-        <button
-          onClick={fetchWorkflowRuns}
-          disabled={loading}
-          className="btn-ghost text-xs flex items-center gap-1 px-2 py-1"
-        >
+      {/* Section header */}
+      <div className="section-header flex items-center justify-between">
+        <span className="section-title">Workflows</span>
+        <button onClick={fetchWorkflowRuns} disabled={loading} className="btn btn-ghost btn-sm">
           <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
         </button>
       </div>
 
-      {/* Workflows */}
-      <div className="space-y-2">
-        {project.workflows.map((workflow) => {
-          const run = runs.get(workflow);
-          const isTriggering = triggering === workflow;
-          const workflowName = workflow.replace('.yml', '').replace('.yaml', '');
+      {/* Workflow list */}
+      <div className="bg-primary">
+        {project.workflows.length === 0 ? (
+          <div className="empty-state">
+            <p className="empty-state-text">No workflows configured</p>
+          </div>
+        ) : (
+          project.workflows.map((workflow) => {
+            const run = runs.get(workflow);
+            const isTriggering = triggering === workflow;
+            const workflowName = workflow.replace('.yml', '').replace('.yaml', '');
 
-          const cardClass = run?.conclusion === 'failure' ? 'danger' : 
-                           run?.status === 'in_progress' ? 'warning' : 
-                           run?.conclusion === 'success' ? 'success' : '';
-
-          return (
-            <div key={workflow} className={`card-accent ${cardClass} p-4`}>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-primary">
-                    {workflowName}
-                  </span>
-                  {getStatusBadge(run ?? null)}
+            return (
+              <div key={workflow} className="list-item">
+                <div className="list-item-content">
+                  <div className="list-item-icon">
+                    <Rocket className="w-4 h-4 text-secondary" />
+                  </div>
+                  <div className="list-item-text">
+                    <div className="list-item-title">{workflowName}</div>
+                    <div className="list-item-subtitle">
+                      {run ? formatTime(run.updated_at) : 'No previous runs'}
+                    </div>
+                  </div>
                 </div>
-                {run && (
-                  <a
-                    href={run.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted hover:text-primary transition-colors"
-                    title="View on GitHub"
+                <div className="list-item-actions">
+                  {getStatusBadge(run ?? null)}
+                  <button
+                    onClick={() => triggerWorkflow(workflow)}
+                    disabled={isTriggering || loading}
+                    className="btn btn-primary btn-sm"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted">
-                  {run ? `Last run: ${formatTime(run.updated_at)}` : 'No previous runs'}
-                </span>
-                <button
-                  onClick={() => triggerWorkflow(workflow)}
-                  disabled={isTriggering || loading}
-                  className="btn btn-primary btn-sm"
-                >
-                  {isTriggering ? (
-                    <>
+                    {isTriggering ? (
                       <RefreshCw className="w-3 h-3 animate-spin" />
-                      Deploying...
-                    </>
-                  ) : (
-                    <>
+                    ) : (
                       <Play className="w-3 h-3" />
-                      Deploy
-                    </>
+                    )}
+                    Deploy
+                  </button>
+                  {run && (
+                    <a
+                      href={run.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-ghost btn-sm"
+                      title="View on GitHub"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   )}
-                </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
-
-      {project.workflows.length === 0 && (
-        <div className="text-center py-8 card">
-          <p className="text-secondary text-sm">No workflows configured</p>
-          <p className="text-muted text-xs mt-1">Add workflows in Settings</p>
-        </div>
-      )}
     </div>
   );
 }

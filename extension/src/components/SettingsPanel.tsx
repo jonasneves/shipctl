@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Plus,
-  Trash2,
-  Save,
-  ExternalLink,
-} from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Plus, Trash2, Save, ExternalLink } from 'lucide-react';
 import { Project, Settings } from '../types';
 
 interface SettingsPanelProps {
@@ -73,97 +65,95 @@ export default function SettingsPanel({
   return (
     <div className="min-h-screen bg-secondary">
       {/* Header */}
-      <header className="header flex items-center gap-3">
-        <button onClick={onBack} className="btn-icon">
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <h1 className="header-title text-base">Settings</h1>
+      <header className="header">
+        <div className="header-brand">
+          <button onClick={onBack} className="btn-header">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <span className="header-title">Settings</span>
+        </div>
       </header>
 
-      <main className="p-4 space-y-6">
+      <main className="p-4 space-y-4">
         {/* GitHub Token */}
-        <section>
-          <label className="block text-sm font-medium text-primary mb-2">
-            GitHub Token
-          </label>
-          <div className="relative">
-            <input
-              type={showToken ? 'text' : 'password'}
-              value={localSettings.githubToken}
-              onChange={(e) =>
-                setLocalSettings({ ...localSettings, githubToken: e.target.value })
-              }
-              className="input pr-10"
-              placeholder="ghp_xxxxxxxxxxxx"
-            />
-            <button
-              type="button"
-              onClick={() => setShowToken(!showToken)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 btn-ghost p-1"
-            >
-              {showToken ? (
-                <EyeOff className="w-4 h-4 text-secondary" />
-              ) : (
-                <Eye className="w-4 h-4 text-secondary" />
-              )}
-            </button>
+        <div className="box">
+          <div className="box-header">
+            <span className="box-header-title">GitHub Token</span>
           </div>
-          <p className="mt-2 text-xs text-muted">
-            Needs <code className="text-secondary">repo</code> and{' '}
-            <code className="text-secondary">workflow</code> scopes.{' '}
-            <a
-              href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=shipctl"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-info hover:underline inline-flex items-center gap-0.5"
-            >
-              Create token <ExternalLink className="w-3 h-3" />
-            </a>
-          </p>
-        </section>
+          <div className="box-body">
+            <div className="relative mb-2">
+              <input
+                type={showToken ? 'text' : 'password'}
+                value={localSettings.githubToken}
+                onChange={(e) =>
+                  setLocalSettings({ ...localSettings, githubToken: e.target.value })
+                }
+                className="input pr-10"
+                placeholder="ghp_xxxxxxxxxxxx"
+              />
+              <button
+                type="button"
+                onClick={() => setShowToken(!showToken)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 btn-header text-secondary"
+              >
+                {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted">
+              Needs <code className="mono text-secondary">repo</code> and{' '}
+              <code className="mono text-secondary">workflow</code> scopes.{' '}
+              <a
+                href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=shipctl"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-info hover:underline inline-flex items-center gap-0.5"
+              >
+                Create token <ExternalLink className="w-3 h-3" />
+              </a>
+            </p>
+          </div>
+        </div>
 
         {/* Projects */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-primary">Projects</label>
-            <button onClick={addProject} className="btn-ghost text-xs text-info flex items-center gap-1 px-2 py-1">
+        <div className="box">
+          <div className="box-header">
+            <div className="flex items-center gap-2">
+              <span className="box-header-title">Projects</span>
+              <span className="counter">{localProjects.length}</span>
+            </div>
+            <button onClick={addProject} className="btn btn-ghost btn-sm text-info">
               <Plus className="w-3 h-3" />
-              Add Project
+              Add
             </button>
           </div>
-
           {localProjects.length === 0 ? (
-            <div className="card p-6 text-center">
-              <p className="text-sm text-secondary">No projects configured</p>
+            <div className="box-body text-center py-8">
+              <p className="text-sm text-muted">No projects configured</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {localProjects.map((project) => (
-                <div key={project.id} className="card p-3 flex items-center justify-between">
-                  <button
-                    onClick={() => setEditingProject(project)}
-                    className="text-left min-w-0 flex-1"
-                  >
-                    <div className="text-sm font-medium text-primary truncate">
-                      {project.name || 'Untitled'}
-                    </div>
-                    <div className="text-xs text-muted truncate">
-                      {project.repo || 'No repo'}
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => deleteProject(project.id)}
-                    className="btn-ghost p-1.5 text-secondary hover:text-danger"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            localProjects.map((project) => (
+              <div key={project.id} className="box-row">
+                <button
+                  onClick={() => setEditingProject(project)}
+                  className="text-left min-w-0 flex-1 bg-transparent border-none p-0 cursor-pointer"
+                >
+                  <div className="text-sm font-medium text-primary">
+                    {project.name || 'Untitled'}
+                  </div>
+                  <div className="text-xs text-muted">{project.repo || 'No repo'}</div>
+                </button>
+                <button
+                  onClick={() => deleteProject(project.id)}
+                  className="btn btn-ghost btn-sm text-muted hover:text-danger"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))
           )}
-        </section>
+        </div>
 
-        {/* Save Button */}
+        {/* Save */}
         <button onClick={handleSave} className="btn btn-primary w-full">
           <Save className="w-4 h-4" />
           Save Changes
@@ -173,7 +163,7 @@ export default function SettingsPanel({
   );
 }
 
-// Project Editor Component
+// Project Editor
 function ProjectEditor({
   project,
   onSave,
@@ -205,143 +195,150 @@ function ProjectEditor({
   return (
     <div className="min-h-screen bg-secondary">
       {/* Header */}
-      <header className="header flex items-center gap-3">
-        <button onClick={onCancel} className="btn-icon">
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <h1 className="header-title text-base">
-          {project.name ? 'Edit Project' : 'New Project'}
-        </h1>
+      <header className="header">
+        <div className="header-brand">
+          <button onClick={onCancel} className="btn-header">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <span className="header-title">
+            {project.name ? 'Edit Project' : 'New Project'}
+          </span>
+        </div>
       </header>
 
       <main className="p-4 space-y-4">
-        {/* Name */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">
-            Project Name
-          </label>
-          <input
-            type="text"
-            value={local.name}
-            onChange={(e) => setLocal({ ...local, name: e.target.value })}
-            className="input"
-            placeholder="My API"
-          />
-        </div>
-
-        {/* Repo */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">
-            GitHub Repository
-          </label>
-          <input
-            type="text"
-            value={local.repo}
-            onChange={(e) => setLocal({ ...local, repo: e.target.value })}
-            className="input"
-            placeholder="username/repo"
-          />
+        {/* Basic Info */}
+        <div className="box">
+          <div className="box-header">
+            <span className="box-header-title">Basic Info</span>
+          </div>
+          <div className="box-body space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-secondary mb-1">Project Name</label>
+              <input
+                type="text"
+                value={local.name}
+                onChange={(e) => setLocal({ ...local, name: e.target.value })}
+                className="input"
+                placeholder="My API"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary mb-1">GitHub Repository</label>
+              <input
+                type="text"
+                value={local.repo}
+                onChange={(e) => setLocal({ ...local, repo: e.target.value })}
+                className="input"
+                placeholder="username/repo"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Workflows */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">
-            Workflows
-          </label>
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={workflowInput}
-              onChange={(e) => setWorkflowInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addWorkflow()}
-              className="input flex-1"
-              placeholder="deploy.yml"
-            />
-            <button onClick={addWorkflow} className="btn btn-secondary">
-              Add
-            </button>
+        <div className="box">
+          <div className="box-header">
+            <span className="box-header-title">Workflows</span>
           </div>
-          {local.workflows.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {local.workflows.map((w) => (
-                <span key={w} className="badge badge-neutral">
-                  {w}
-                  <button
-                    onClick={() => removeWorkflow(w)}
-                    className="ml-1 text-muted hover:text-danger"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+          <div className="box-body">
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={workflowInput}
+                onChange={(e) => setWorkflowInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && addWorkflow()}
+                className="input flex-1"
+                placeholder="deploy.yml"
+              />
+              <button onClick={addWorkflow} className="btn btn-secondary">
+                Add
+              </button>
             </div>
-          )}
+            {local.workflows.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {local.workflows.map((w) => (
+                  <span key={w} className="status-badge status-badge-neutral">
+                    {w}
+                    <button
+                      onClick={() => removeWorkflow(w)}
+                      className="ml-1 text-muted hover:text-danger"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Local Command */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">
-            Local Dev Command
-          </label>
-          <input
-            type="text"
-            value={local.localCommand || ''}
-            onChange={(e) => setLocal({ ...local, localCommand: e.target.value })}
-            className="input font-mono"
-            placeholder="npm run dev"
-          />
+        {/* Local Development */}
+        <div className="box">
+          <div className="box-header">
+            <span className="box-header-title">Local Development</span>
+          </div>
+          <div className="box-body space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-secondary mb-1">Dev Command</label>
+              <input
+                type="text"
+                value={local.localCommand || ''}
+                onChange={(e) => setLocal({ ...local, localCommand: e.target.value })}
+                className="input mono"
+                placeholder="npm run dev"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary mb-1">Local Port</label>
+              <input
+                type="number"
+                value={local.localPort || ''}
+                onChange={(e) =>
+                  setLocal({ ...local, localPort: parseInt(e.target.value) || undefined })
+                }
+                className="input"
+                placeholder="3000"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Local Port */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">
-            Local Port
-          </label>
-          <input
-            type="number"
-            value={local.localPort || ''}
-            onChange={(e) =>
-              setLocal({ ...local, localPort: parseInt(e.target.value) || undefined })
-            }
-            className="input"
-            placeholder="3000"
-          />
+        {/* Environments */}
+        <div className="box">
+          <div className="box-header">
+            <span className="box-header-title">Environments</span>
+          </div>
+          <div className="box-body space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-secondary mb-1">Health Check Path</label>
+              <input
+                type="text"
+                value={local.healthEndpoint || ''}
+                onChange={(e) => setLocal({ ...local, healthEndpoint: e.target.value })}
+                className="input"
+                placeholder="/health"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-secondary mb-1">Production URL</label>
+              <input
+                type="text"
+                value={local.environments?.production || ''}
+                onChange={(e) =>
+                  setLocal({
+                    ...local,
+                    environments: { ...local.environments, production: e.target.value },
+                  })
+                }
+                className="input"
+                placeholder="https://api.example.com"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Health Endpoint */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">
-            Health Check Path
-          </label>
-          <input
-            type="text"
-            value={local.healthEndpoint || ''}
-            onChange={(e) => setLocal({ ...local, healthEndpoint: e.target.value })}
-            className="input"
-            placeholder="/health"
-          />
-        </div>
-
-        {/* Production URL */}
-        <div>
-          <label className="block text-xs font-medium text-secondary mb-1.5">
-            Production URL
-          </label>
-          <input
-            type="text"
-            value={local.environments?.production || ''}
-            onChange={(e) =>
-              setLocal({
-                ...local,
-                environments: { ...local.environments, production: e.target.value },
-              })
-            }
-            className="input"
-            placeholder="https://api.example.com"
-          />
-        </div>
-
-        {/* Save Button */}
+        {/* Save */}
         <button
           onClick={() => onSave(local)}
           disabled={!local.name || !local.repo}
