@@ -71,7 +71,7 @@ export default function SettingsPanel({
   }
 
   return (
-    <div className="min-h-screen bg-primary">
+    <div className="min-h-screen bg-secondary">
       {/* Header */}
       <header className="sticky top-0 z-10">
         <div className="flex items-center gap-3 px-4 py-3 header-gradient">
@@ -208,7 +208,7 @@ function ProjectEditor({
   };
 
   return (
-    <div className="min-h-screen bg-primary">
+    <div className="min-h-screen bg-secondary">
       {/* Header */}
       <header className="sticky top-0 z-10">
         <div className="flex items-center gap-3 px-4 py-3 header-gradient">

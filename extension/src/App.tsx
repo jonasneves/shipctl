@@ -73,7 +73,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-primary">
+    <div className="min-h-screen bg-secondary">
       {/* Header */}
       <header className="sticky top-0 z-10">
         <div className="flex items-center justify-between px-4 py-3 header-gradient">
@@ -96,10 +96,10 @@ function App() {
         </div>
 
         {/* Project Selector */}
-        <div className="px-4 py-3 bg-secondary border-b border-default">
+        <div className="px-4 py-3 bg-primary border-b border-default">
           <button
             onClick={() => setActiveTab('projects')}
-            className="w-full flex items-center justify-between px-3 py-2.5 card card-hover transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2.5 card card-hover transition-all"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <span className={`status-dot ${activeProject ? 'status-dot-success' : 'status-dot-neutral'}`} />
@@ -115,14 +115,14 @@ function App() {
 
         {/* Tab Navigation */}
         {activeTab !== 'projects' && (
-          <div className="flex px-4 bg-secondary border-b border-default">
+          <div className="flex px-4 bg-primary border-b border-default">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-primary'
+                    ? 'border-[#1e3a5f] text-[#1e3a5f]'
                     : 'border-transparent text-secondary hover:text-primary'
                 }`}
               >
@@ -135,7 +135,7 @@ function App() {
       </header>
 
       {/* Content */}
-      <main className="p-4">
+      <main className="p-4 bg-secondary min-h-screen">
         {activeTab === 'projects' && (
           <ProjectsPanel
             projects={projects}
