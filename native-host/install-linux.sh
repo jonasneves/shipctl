@@ -5,7 +5,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 EXT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 HOST_DIR="$SCRIPT_DIR"
-ROOT_DIR="$(cd "$EXT_DIR/.." && pwd)"
+# Find GitHub directory (serverless-llm sibling)
+GITHUB_DIR="$(cd "$SCRIPT_DIR" && while [[ "$PWD" != "/" ]]; do if [[ -d "$PWD/../serverless-llm" ]]; then cd ..; pwd; exit 0; fi; cd ..; done; echo "")"
+ROOT_DIR="${GITHUB_DIR:-$(cd "$EXT_DIR/../.." && pwd)}"
 
 # Read extension ID from .extension-id file if not provided
 if [[ $# -eq 0 ]]; then
