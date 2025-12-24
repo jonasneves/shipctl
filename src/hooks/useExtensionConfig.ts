@@ -118,6 +118,7 @@ export function normalizeEnvConfig(raw: unknown): EnvConfig {
     chatApiBaseUrl: normalizeChatApiBaseUrl(typeof merged.chatApiBaseUrl === 'string' ? merged.chatApiBaseUrl : ''),
     modelsBaseDomain: typeof merged.modelsBaseDomain === 'string' ? merged.modelsBaseDomain : DEFAULT_CONFIG.modelsBaseDomain,
     modelsUseHttps: typeof merged.modelsUseHttps === 'boolean' ? merged.modelsUseHttps : DEFAULT_CONFIG.modelsUseHttps,
+    repoPath: typeof merged.repoPath === 'string' ? merged.repoPath : undefined,
   };
 }
 
