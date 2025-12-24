@@ -9,6 +9,26 @@ HOST_DIR="$SCRIPT_DIR"
 GITHUB_DIR="$(cd "$SCRIPT_DIR" && while [[ "$PWD" != "/" ]]; do if [[ -d "$PWD/../serverless-llm" ]]; then cd ..; pwd; exit 0; fi; cd ..; done; echo "")"
 ROOT_DIR="${GITHUB_DIR:-$(cd "$EXT_DIR/../.." && pwd)}"
 
+# Read config from .shipctl.env if it exists
+read_env_config() {
+  local env_file="$EXT_DIR/.shipctl.env"
+  if [[ -f "$env_file" ]]; then
+    while IFS='=' read -r key value; do
+      # Skip comments and empty lines
+      [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+      # Trim whitespace
+      key=$(echo "$key" | xargs)
+      value=$(echo "$value" | xargs)
+      case "$key" in
+        PYTHON_PATH) export CONFIG_PYTHON_PATH="$value" ;;
+        REPO_PATH) export CONFIG_REPO_PATH="$value" ;;
+      esac
+    done < "$env_file"
+  fi
+}
+
+read_env_config
+
 # Read extension ID from .extension-id file if not provided
 if [[ $# -eq 0 ]]; then
   if [[ -f "$EXT_DIR/.extension-id" ]]; then
@@ -30,6 +50,11 @@ BROWSER="${2:-chrome}"
 PY="$HOST_DIR/serverless_llm_native_host.py"
 
 pick_python() {
+  # Try config file first
+  if [[ -n "${CONFIG_PYTHON_PATH:-}" && -x "$CONFIG_PYTHON_PATH" ]]; then
+    echo "$CONFIG_PYTHON_PATH"
+    return
+  fi
   # Try serverless-llm venv (sibling directory)
   if [[ -x "$ROOT_DIR/serverless-llm/venv/bin/python" ]]; then
     echo "$ROOT_DIR/serverless-llm/venv/bin/python"
@@ -45,7 +70,7 @@ pick_python() {
     command -v python
     return
   fi
-  echo "Python not found. Install Python 3.11+ or set up serverless-llm venv." >&2
+  echo "Python not found. Install Python 3.11+ or set PYTHON_PATH in .shipctl.env" >&2
   exit 1
 }
 

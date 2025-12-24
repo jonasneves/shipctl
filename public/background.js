@@ -66,15 +66,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type !== 'native_backend') return;
 
   (async () => {
-    // Get repo path from storage and inject it into the payload
-    const storage = await chrome.storage.local.get('envConfig');
-    const repoPath = storage.envConfig?.repoPath || '';
-
     const payload = message.payload || {};
-    if (repoPath) {
-      payload.repoPath = repoPath;
-    }
-
     const response = await sendNativeMessage(payload);
     sendResponse(response);
   })();

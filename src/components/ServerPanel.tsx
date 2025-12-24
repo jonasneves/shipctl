@@ -38,7 +38,7 @@ const ServerPanel: React.FC = () => {
     });
   }, []);
 
-  const saveConfig = () => {
+  const saveConfig = async () => {
     const endpoints = buildAllEndpoints(config.modelsBaseDomain, config.modelsUseHttps);
 
     const configToSave = {
@@ -53,6 +53,31 @@ const ServerPanel: React.FC = () => {
     };
 
     chrome.storage.local.set({ envConfig: configToSave });
+
+    try {
+      const response = await new Promise<any>((resolve) => {
+        chrome.runtime.sendMessage(
+          {
+            type: 'native_backend',
+            payload: {
+              action: 'save_config',
+              pythonPath: config.pythonPath || '',
+              repoPath: config.repoPath || '',
+            },
+          },
+          resolve
+        );
+      });
+
+      if (response?.ok) {
+        alert('Configuration saved to .shipctl.env\n\nIf you changed Python path, run:\n./native-host/install-macos.sh');
+      } else {
+        alert(`Failed to save config: ${response?.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Failed to save config:', err);
+      alert('Failed to save config file. Make sure native host is installed.');
+    }
   };
 
   return (
@@ -169,6 +194,24 @@ const ServerPanel: React.FC = () => {
             />
             <p className="mt-2 text-[11px] text-slate-400">
               Path to serverless-llm repo. Leave empty to auto-detect.
+            </p>
+          </div>
+
+          {/* Python Path */}
+          <div className="p-3 rounded-xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/30">
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
+              <Globe className="w-3.5 h-3.5 text-emerald-400" />
+              Python Path
+            </label>
+            <input
+              type="text"
+              value={config.pythonPath || ''}
+              onChange={(e) => setConfig({ ...config, pythonPath: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
+              placeholder="/path/to/python"
+            />
+            <p className="mt-2 text-[11px] text-slate-400">
+              Python interpreter for native host. Leave empty to auto-detect.
             </p>
           </div>
 

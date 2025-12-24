@@ -73,6 +73,7 @@ export interface EnvConfig {
   modelsBaseDomain: string;
   modelsUseHttps: boolean;
   repoPath?: string;
+  pythonPath?: string;
 }
 
 const DEFAULT_CONFIG: EnvConfig = {
