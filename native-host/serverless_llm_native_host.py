@@ -1,4 +1,4 @@
-#!/Users/jonasneves/Documents/GitHub/serverless-llm/venv/bin/python
+#!/usr/bin/python3
 
 import json
 import os
