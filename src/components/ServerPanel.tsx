@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Settings, Globe, Eye, EyeOff, Sparkles, ExternalLink } from 'lucide-react';
 import { SERVICES, buildEndpoint, EnvConfig, normalizeEnvConfig } from '../hooks/useExtensionConfig';
 import DeploymentsPanel from './DeploymentsPanel';
+import { nativeHost } from '../services/nativeHost';
 
 const DEFAULT_CONFIG: EnvConfig = {
   githubToken: '',
@@ -10,17 +11,6 @@ const DEFAULT_CONFIG: EnvConfig = {
   modelsBaseDomain: 'neevs.io',
   modelsUseHttps: true,
 };
-
-/**
- * Build all endpoints from base domain
- */
-function buildAllEndpoints(baseDomain: string, useHttps: boolean): Record<string, string> {
-  const endpoints: Record<string, string> = {};
-  for (const service of SERVICES) {
-    endpoints[service.key] = buildEndpoint(service.key, service.localPort, baseDomain, useHttps);
-  }
-  return endpoints;
-}
 
 const ServerPanel: React.FC = () => {
   const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
@@ -39,24 +29,13 @@ const ServerPanel: React.FC = () => {
   }, []);
 
   const saveConfig = async () => {
-    // Save to chrome.storage
     chrome.storage.local.set({ envConfig: config });
 
-    // Save paths to .shipctl.env via native host
     try {
-      const response = await new Promise<any>((resolve) => {
-        chrome.runtime.sendMessage(
-          {
-            type: 'native_backend',
-            payload: {
-              action: 'save_config',
-              pythonPath: config.pythonPath || '',
-              repoPath: config.repoPath || '',
-            },
-          },
-          resolve
-        );
-      });
+      const response = await nativeHost.saveConfig(
+        config.pythonPath || '',
+        config.repoPath || ''
+      );
 
       if (response?.ok) {
         alert('Configuration saved to .shipctl.env\n\nIf you changed Python path, run:\n./native-host/install-macos.sh');

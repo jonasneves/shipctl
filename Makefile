@@ -28,7 +28,7 @@ help:
 	@echo "  make uninstall-native        Remove native host"
 	@echo ""
 	@echo "After building, load in Chrome:"
-	@echo "  chrome://extensions -> Load unpacked -> shipctl-extension/dist/"
+	@echo "  chrome://extensions -> Load unpacked -> shipctl/dist/"
 	@echo ""
 	@echo "Extension ID: $(EXT_ID)"
 
@@ -38,7 +38,7 @@ build:
 	npm run build:extension
 	@echo ""
 	@echo "✓ Extension built to dist/"
-	@echo "Load in Chrome: chrome://extensions -> Load unpacked -> shipctl-extension/dist/"
+	@echo "Load in Chrome: chrome://extensions -> Load unpacked -> shipctl/dist/"
 	@echo ""
 	@echo "Extension ID: $(EXT_ID)"
 

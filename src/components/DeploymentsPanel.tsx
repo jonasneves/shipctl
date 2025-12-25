@@ -15,28 +15,9 @@ import {
     buildEndpoint,
     getServicesGroupedByCategory
 } from '../hooks/useExtensionConfig';
-
-interface WorkflowRun {
-    id: number;
-    name: string;
-    status: 'completed' | 'in_progress' | 'queued' | 'waiting' | 'failure';
-    conclusion: 'success' | 'failure' | 'cancelled' | null;
-    created_at: string;
-    updated_at: string;
-    html_url: string;
-}
-
-interface WorkflowInfo {
-    id: number;
-    name: string;
-    path: string;
-}
-
-interface HealthStatus {
-    status: 'ok' | 'down' | 'checking';
-    latency?: number;
-    lastCheck?: string;
-}
+import { GitHubService, type WorkflowRun, type WorkflowInfo } from '../services/github';
+import { healthChecker, type HealthStatus } from '../services/healthCheck';
+import { nativeHost } from '../services/nativeHost';
 
 interface DeploymentsPanelProps {
     githubToken: string;
@@ -49,11 +30,9 @@ interface DeploymentsPanelProps {
     onActiveDeploymentsChange?: (count: number) => void;
 }
 
+const KEY_WORKFLOWS = WORKFLOWS;
 const REPO_OWNER = 'jonasneves';
 const REPO_NAME = 'serverless-llm';
-
-// Use generated workflows from config
-const KEY_WORKFLOWS = WORKFLOWS;
 
 function normalizeBaseUrl(url: string): string {
     return url.trim().replace(/\/+$/, '');
@@ -79,12 +58,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
     const refreshInFlight = useRef(false);
     const workflowsRef = useRef<Map<string, WorkflowInfo>>(new Map());
 
-    const headers = {
-        'Authorization': `Bearer ${githubToken}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'serverless-llm-extension',
-    };
+    const github = useMemo(() => new GitHubService(githubToken), [githubToken]);
 
     // Aggregate status stats
     const stats = useMemo(() => {
@@ -121,80 +95,27 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
 
     const checkBackendHealth = useCallback(async () => {
         setBackendHealth({ status: 'checking' });
-        const start = Date.now();
-        try {
-            const baseUrl = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
-            const response = await fetch(`${baseUrl}/health`, {
-                method: 'GET',
-                mode: 'cors',
-                credentials: 'omit',
-                signal: AbortSignal.timeout(5000),
-            });
-            const latency = Date.now() - start;
-            setBackendHealth({
-                status: response.ok ? 'ok' : 'down',
-                latency,
-                lastCheck: new Date().toISOString(),
-            });
-        } catch {
-            setBackendHealth({ status: 'down', lastCheck: new Date().toISOString() });
-        }
+        const baseUrl = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
+        const status = await healthChecker.check(baseUrl, 5000);
+        setBackendHealth(status);
     }, [chatApiBaseUrl]);
-
-    const checkModelHealth = useCallback(async (serviceKey: string, endpoint: string) => {
-        const start = Date.now();
-        try {
-            const response = await fetch(`${endpoint}/health`, {
-                method: 'GET',
-                mode: 'cors',
-                credentials: 'omit',
-                signal: AbortSignal.timeout(3000),
-            });
-            const latency = Date.now() - start;
-            setModelHealthStatuses(prev => new Map(prev).set(serviceKey, {
-                status: response.ok ? 'ok' : 'down',
-                latency,
-                lastCheck: new Date().toISOString(),
-            }));
-        } catch {
-            setModelHealthStatuses(prev => new Map(prev).set(serviceKey, {
-                status: 'down',
-                lastCheck: new Date().toISOString(),
-            }));
-        }
-    }, []);
 
     const checkAllModelsHealth = useCallback(async () => {
         for (const service of SERVICES) {
             const endpoint = buildEndpoint(service.key, service.localPort, modelsBaseDomain, modelsUseHttps);
             setModelHealthStatuses(prev => new Map(prev).set(service.key, { status: 'checking' }));
-            await checkModelHealth(service.key, endpoint);
         }
-    }, [modelsBaseDomain, modelsUseHttps, checkModelHealth]);
 
-    const isNativeAvailable = () =>
-        typeof chrome !== 'undefined' && !!chrome.runtime?.sendMessage;
-
-    const nativeRequest = async (payload: any) => {
-        if (!isNativeAvailable()) {
-            return { ok: false, error: 'Native messaging unavailable' };
+        for (const service of SERVICES) {
+            const endpoint = buildEndpoint(service.key, service.localPort, modelsBaseDomain, modelsUseHttps);
+            const status = await healthChecker.check(endpoint, 3000);
+            setModelHealthStatuses(prev => new Map(prev).set(service.key, status));
         }
-        return await new Promise<any>((resolve) => {
-            try {
-                chrome.runtime.sendMessage({ type: 'native_backend', payload }, (response) => {
-                    const err = chrome.runtime.lastError?.message;
-                    if (err) resolve({ ok: false, error: err });
-                    else resolve(response);
-                });
-            } catch (e: any) {
-                resolve({ ok: false, error: e?.message || String(e) });
-            }
-        });
-    };
+    }, [modelsBaseDomain, modelsUseHttps]);
 
     const refreshBackendStatus = useCallback(async () => {
         const normalized = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
-        const resp = await nativeRequest({ action: 'status', chatApiBaseUrl: normalized });
+        const resp = await nativeHost.status(normalized);
         if (resp?.ok) {
             const process = resp.status === 'running' ? 'running' : 'stopped';
             const mode = resp.mode ?? null;
@@ -223,7 +144,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
         }
 
         const mode = modelsBaseDomain ? 'dev-chat' : 'dev-interface-local';
-        const resp = await nativeRequest({ action: 'start', mode });
+        const resp = await nativeHost.start(mode);
         if (!resp?.ok && resp?.logTail) setBackendLogTail(resp.logTail);
         if (!resp?.ok && resp?.error) setBackendNativeError(resp.error);
         await refreshBackendStatus();
@@ -235,14 +156,14 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
         setBackendBusy(true);
         setBackendLogTail(null);
         setBackendNativeError(null);
-        await nativeRequest({ action: 'stop' });
+        await nativeHost.stop();
         await refreshBackendStatus();
         await checkBackendHealth();
         setBackendBusy(false);
     };
 
     const fetchBackendLogs = async () => {
-        const resp = await nativeRequest({ action: 'logs' });
+        const resp = await nativeHost.logs();
         if (resp?.ok) setBackendLogTail(resp.logTail || null);
         if (!resp?.ok && resp?.error) setBackendNativeError(resp.error);
     };
@@ -257,8 +178,8 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
             : [`build-${target}`];
 
         for (const t of targets) {
-            const resp = await nativeRequest({ action: 'make', target: t });
-            if (resp?.logTail) setBuildLogTail(prev => prev ? `${prev}\n\n--- ${t} ---\n${resp.logTail}` : resp.logTail);
+            const resp = await nativeHost.make(t);
+            if (resp?.logTail) setBuildLogTail(prev => prev ? `${prev}\n\n--- ${t} ---\n${resp.logTail}` : (resp.logTail || null));
             if (!resp?.ok) {
                 setBuildNativeError(resp?.error || `${t} failed`);
                 setBuildBusy(false);
@@ -277,16 +198,9 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
         }
 
         try {
-            const response = await fetch(
-                `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows`,
-                { headers }
-            );
-
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-            const data = await response.json();
+            const workflows = await github.getWorkflows();
             const wfMap = new Map<string, WorkflowInfo>();
-            for (const wf of data.workflows || []) {
+            for (const wf of workflows) {
                 const key = KEY_WORKFLOWS.find(k => wf.path?.endsWith(k.path));
                 if (key) wfMap.set(key.name, { id: wf.id, name: key.name, path: wf.path });
             }
@@ -296,7 +210,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
         } catch (err: any) {
             setError(err.message);
         }
-    }, [githubToken]);
+    }, [githubToken, github]);
 
     const fetchLatestRuns = useCallback(async () => {
         if (!githubToken || workflowsRef.current.size === 0) return;
@@ -306,16 +220,9 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
 
         for (const [name, wf] of workflowsRef.current) {
             try {
-                const response = await fetch(
-                    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${wf.id}/runs?per_page=1`,
-                    { headers }
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    const run = data.workflow_runs?.[0] || null;
-                    newRuns.set(name, run);
-                    if (run?.status === 'in_progress' || run?.status === 'queued') activeCount++;
-                }
+                const run = await github.getLatestRun(wf.id);
+                newRuns.set(name, run);
+                if (run?.status === 'in_progress' || run?.status === 'queued') activeCount++;
             } catch {
                 newRuns.set(name, null);
             }
@@ -324,7 +231,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
         setRuns(newRuns);
         onActiveDeploymentsChange?.(activeCount);
         setLoading(false);
-    }, [githubToken, onActiveDeploymentsChange]);
+    }, [githubToken, github, onActiveDeploymentsChange]);
 
     const refresh = useCallback(async () => {
         if (refreshInFlight.current) return;
@@ -349,20 +256,12 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
         setTriggering(workflowName);
         try {
             const workflowIdentifier = wf?.id ?? fallbackPath;
-            const response = await fetch(
-                `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowIdentifier}/dispatches`,
-                {
-                    method: 'POST',
-                    headers: { ...headers, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ref: 'main' }),
-                }
-            );
+            const success = await github.triggerWorkflow(workflowIdentifier!);
 
-            if (response.status === 204) {
+            if (success) {
                 setTimeout(() => refresh(), 3000);
             } else {
-                const errorData = await response.json().catch(() => ({}));
-                setError(errorData.message || `Failed to trigger ${workflowName}`);
+                setError(`Failed to trigger ${workflowName}`);
             }
         } catch (err: any) {
             setError(err.message);
