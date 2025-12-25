@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "shipctl",
   "version": "1.0.0",
-  "description": "shipctl side panel for Serverless LLM DevOps controls",
+  "description": "ShipCTL - DevOps control panel for deployment workflows and service management",
   "icons": {
     "16": "icon-16.svg",
     "48": "icon-48.svg",

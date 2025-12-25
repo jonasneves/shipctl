@@ -80,8 +80,8 @@ export interface EnvConfig {
 
 const DEFAULT_CONFIG: EnvConfig = {
   githubToken: '',
-  githubRepoOwner: 'jonasneves',
-  githubRepoName: 'serverless-llm',
+  githubRepoOwner: '',
+  githubRepoName: '',
   profile: 'local_all',
   chatApiBaseUrl: 'http://localhost:8080',
   modelsBaseDomain: '',

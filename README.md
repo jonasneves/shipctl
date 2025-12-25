@@ -1,6 +1,6 @@
-# shipctl Extension
+# ShipCTL Extension
 
-Chrome extension for managing serverless-llm deployments and local backend.
+Chrome extension for managing GitHub Actions deployments, workflows, and local backend services.
 
 ## Configuration
 
@@ -8,8 +8,8 @@ Chrome extension for managing serverless-llm deployments and local backend.
 
 Configuration is managed via `.shipctl.env` file in the extension root directory. This file stores:
 
-- **PYTHON_PATH**: Path to Python interpreter for the native host
-- **REPO_PATH**: Path to serverless-llm repository
+- **PYTHON_PATH**: Path to Python interpreter for the API server
+- **REPO_PATH**: Path to your project repository
 
 #### Creating Configuration
 

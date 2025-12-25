@@ -1,4 +1,4 @@
-// Background service worker for Chrome extension
+// Background service worker for ShipCTL extension
 // Opens side panel when extension icon is clicked
 
 // Enable side panel to open when clicking the extension icon
@@ -6,7 +6,8 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-const NATIVE_HOST_NAME = 'io.neevs.serverless_llm';
+// Legacy: Native messaging is deprecated in favor of HTTP API (api-server/server.py)
+const NATIVE_HOST_NAME = 'io.neevs.shipctl';
 
 function sendNativeMessage(payload) {
   return new Promise((resolve) => {

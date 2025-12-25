@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-FastAPI HTTP server to replace Chrome native messaging.
-Provides REST API for managing the serverless-llm backend.
+ShipCTL API Server - FastAPI HTTP server to replace Chrome native messaging.
+Provides REST API for managing backend deployment workflows.
 """
 
 import json
@@ -75,19 +75,19 @@ def _read_env_config() -> Dict[str, str]:
 def _find_repo_root(custom_path: Optional[str] = None) -> Path:
     if custom_path:
         candidate = Path(custom_path).expanduser().resolve()
-        if (candidate / "Makefile").exists() and (candidate / "app" / "chat" / "backend" / "chat_server.py").exists():
+        if (candidate / "Makefile").exists():
             return candidate
         raise RuntimeError(f"Custom repo path invalid: {custom_path}")
 
     env_config = _read_env_config()
     if "REPO_PATH" in env_config and env_config["REPO_PATH"]:
         candidate = Path(env_config["REPO_PATH"]).expanduser().resolve()
-        if (candidate / "Makefile").exists() and (candidate / "app" / "chat" / "backend" / "chat_server.py").exists():
+        if (candidate / "Makefile").exists():
             return candidate
 
     here = Path(__file__).resolve()
     for parent in [here.parent, *here.parents]:
-        if (parent / "Makefile").exists() and (parent / "app" / "chat" / "backend" / "chat_server.py").exists():
+        if (parent / "Makefile").exists():
             return parent
 
     raise RuntimeError("Could not locate repo root. Set REPO_PATH in .shipctl.env")

@@ -7,8 +7,8 @@ import { nativeHost } from '../services/nativeHost';
 
 const DEFAULT_CONFIG: EnvConfig = {
   githubToken: '',
-  githubRepoOwner: 'jonasneves',
-  githubRepoName: 'serverless-llm',
+  githubRepoOwner: '',
+  githubRepoName: '',
   profile: 'local_chat_remote_models',
   chatApiBaseUrl: 'http://localhost:8080',
   modelsBaseDomain: 'neevs.io',
@@ -133,7 +133,7 @@ const ServerPanel: React.FC = () => {
                 <AlertCircle className="w-3 h-3" />
                 Required for deployments.{' '}
                 <a
-                  href="https://github.com/settings/tokens/new?description=Serverless+LLM+Extension&scopes=repo,workflow&default_expires_at=none"
+                  href="https://github.com/settings/tokens/new?description=ShipCTL+Extension&scopes=repo,workflow&default_expires_at=none"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-amber-300 inline-flex items-center gap-1"
@@ -150,6 +150,33 @@ const ServerPanel: React.FC = () => {
             )}
           </div>
 
+          {/* GitHub Repository */}
+          <div className="p-3 rounded-xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/30">
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
+              <Globe className="w-3.5 h-3.5 text-purple-400" />
+              GitHub Repository
+            </label>
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={config.githubRepoOwner || ''}
+                onChange={(e) => setConfig({ ...config, githubRepoOwner: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                placeholder="Repository owner (e.g., jonasneves)"
+              />
+              <input
+                type="text"
+                value={config.githubRepoName || ''}
+                onChange={(e) => setConfig({ ...config, githubRepoName: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                placeholder="Repository name (e.g., my-project)"
+              />
+            </div>
+            <p className="mt-2 text-[11px] text-slate-400">
+              GitHub repository for workflow deployments
+            </p>
+          </div>
+
           {/* Repository Path */}
           <div className="p-3 rounded-xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/30">
             <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
@@ -161,10 +188,10 @@ const ServerPanel: React.FC = () => {
               value={config.repoPath || ''}
               onChange={(e) => setConfig({ ...config, repoPath: e.target.value })}
               className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
-              placeholder="~/Documents/GitHub/serverless-llm"
+              placeholder="~/Documents/GitHub/my-project"
             />
             <p className="mt-2 text-[11px] text-slate-400">
-              Path to serverless-llm repo. Leave empty to auto-detect.
+              Path to your project repository. Leave empty to auto-detect.
             </p>
           </div>
 
