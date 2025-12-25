@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Settings, Globe, Eye, EyeOff, Sparkles, ExternalLink } from 'lucide-react';
 import { SERVICES, buildEndpoint, EnvConfig, normalizeEnvConfig } from '../hooks/useExtensionConfig';
 import DeploymentsPanel from './DeploymentsPanel';
+import ErrorBoundary from './ErrorBoundary';
 import { nativeHost } from '../services/nativeHost';
 
 const DEFAULT_CONFIG: EnvConfig = {
   githubToken: '',
+  githubRepoOwner: 'jonasneves',
+  githubRepoName: 'serverless-llm',
   profile: 'local_chat_remote_models',
   chatApiBaseUrl: 'http://localhost:8080',
   modelsBaseDomain: 'neevs.io',
@@ -236,16 +239,20 @@ const ServerPanel: React.FC = () => {
         </div>
       ) : (
         <div className="relative z-10 overflow-y-auto px-4 pb-4 h-[calc(100vh-60px)]">
-          <DeploymentsPanel
-            githubToken={config.githubToken}
-            chatApiBaseUrl={config.chatApiBaseUrl}
-            modelsBaseDomain={config.modelsBaseDomain}
-            modelsUseHttps={config.modelsUseHttps}
-            globalTab={globalTab}
-            showOnlyBackend={false}
-            onBackendStatusChange={setBackendStatus}
-            onActiveDeploymentsChange={setActiveDeployments}
-          />
+          <ErrorBoundary>
+            <DeploymentsPanel
+              githubToken={config.githubToken}
+              githubRepoOwner={config.githubRepoOwner}
+              githubRepoName={config.githubRepoName}
+              chatApiBaseUrl={config.chatApiBaseUrl}
+              modelsBaseDomain={config.modelsBaseDomain}
+              modelsUseHttps={config.modelsUseHttps}
+              globalTab={globalTab}
+              showOnlyBackend={false}
+              onBackendStatusChange={setBackendStatus}
+              onActiveDeploymentsChange={setActiveDeployments}
+            />
+          </ErrorBoundary>
         </div>
       )}
     </div>

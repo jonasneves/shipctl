@@ -68,6 +68,8 @@ export type ProfileId = 'remote_all' | 'local_chat_remote_models' | 'local_all' 
 
 export interface EnvConfig {
   githubToken: string;
+  githubRepoOwner: string;
+  githubRepoName: string;
   profile: ProfileId;
   chatApiBaseUrl: string;
   modelsBaseDomain: string;
@@ -78,6 +80,8 @@ export interface EnvConfig {
 
 const DEFAULT_CONFIG: EnvConfig = {
   githubToken: '',
+  githubRepoOwner: 'jonasneves',
+  githubRepoName: 'serverless-llm',
   profile: 'local_all',
   chatApiBaseUrl: 'http://localhost:8080',
   modelsBaseDomain: '',
@@ -115,6 +119,8 @@ export function normalizeEnvConfig(raw: unknown): EnvConfig {
 
   return {
     githubToken: typeof merged.githubToken === 'string' ? merged.githubToken : DEFAULT_CONFIG.githubToken,
+    githubRepoOwner: typeof merged.githubRepoOwner === 'string' ? merged.githubRepoOwner : DEFAULT_CONFIG.githubRepoOwner,
+    githubRepoName: typeof merged.githubRepoName === 'string' ? merged.githubRepoName : DEFAULT_CONFIG.githubRepoName,
     profile,
     chatApiBaseUrl: normalizeChatApiBaseUrl(typeof merged.chatApiBaseUrl === 'string' ? merged.chatApiBaseUrl : ''),
     modelsBaseDomain: typeof merged.modelsBaseDomain === 'string' ? merged.modelsBaseDomain : DEFAULT_CONFIG.modelsBaseDomain,

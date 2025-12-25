@@ -1,6 +1,3 @@
-const REPO_OWNER = 'jonasneves';
-const REPO_NAME = 'serverless-llm';
-
 interface WorkflowInfo {
   id: number;
   name: string;
@@ -18,11 +15,13 @@ interface WorkflowRun {
 }
 
 class GitHubService {
-  private token: string;
+  private owner: string;
+  private repo: string;
   private headers: Record<string, string>;
 
-  constructor(token: string) {
-    this.token = token;
+  constructor(token: string, owner: string, repo: string) {
+    this.owner = owner;
+    this.repo = repo;
     this.headers = {
       'Authorization': `Bearer ${token}`,
       'Accept': 'application/vnd.github.v3+json',
@@ -33,7 +32,7 @@ class GitHubService {
 
   async getWorkflows(): Promise<any[]> {
     const response = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows`,
+      `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows`,
       { headers: this.headers }
     );
 
@@ -45,7 +44,7 @@ class GitHubService {
 
   async getLatestRun(workflowId: number): Promise<WorkflowRun | null> {
     const response = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowId}/runs?per_page=1`,
+      `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows/${workflowId}/runs?per_page=1`,
       { headers: this.headers }
     );
 
@@ -57,7 +56,7 @@ class GitHubService {
 
   async triggerWorkflow(workflowIdentifier: number | string): Promise<boolean> {
     const response = await fetch(
-      `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${workflowIdentifier}/dispatches`,
+      `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows/${workflowIdentifier}/dispatches`,
       {
         method: 'POST',
         headers: { ...this.headers, 'Content-Type': 'application/json' },

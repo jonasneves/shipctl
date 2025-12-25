@@ -18,9 +18,12 @@ import {
 import { GitHubService, type WorkflowRun, type WorkflowInfo } from '../services/github';
 import { healthChecker, type HealthStatus } from '../services/healthCheck';
 import { nativeHost } from '../services/nativeHost';
+import { normalizeBaseUrl } from '../utils/url';
 
 interface DeploymentsPanelProps {
     githubToken: string;
+    githubRepoOwner: string;
+    githubRepoName: string;
     chatApiBaseUrl: string;
     modelsBaseDomain: string;
     modelsUseHttps: boolean;
@@ -31,14 +34,8 @@ interface DeploymentsPanelProps {
 }
 
 const KEY_WORKFLOWS = WORKFLOWS;
-const REPO_OWNER = 'jonasneves';
-const REPO_NAME = 'serverless-llm';
 
-function normalizeBaseUrl(url: string): string {
-    return url.trim().replace(/\/+$/, '');
-}
-
-const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, globalTab, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange }) => {
+const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, globalTab, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange }) => {
     const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
     const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -58,7 +55,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
     const refreshInFlight = useRef(false);
     const workflowsRef = useRef<Map<string, WorkflowInfo>>(new Map());
 
-    const github = useMemo(() => new GitHubService(githubToken), [githubToken]);
+    const github = useMemo(() => new GitHubService(githubToken, githubRepoOwner, githubRepoName), [githubToken, githubRepoOwner, githubRepoName]);
 
     // Aggregate status stats
     const stats = useMemo(() => {
@@ -349,7 +346,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, chatAp
     const buildWorkflowUrl = (workflowName: string | null) => {
         if (!workflowName) return undefined;
         const path = WORKFLOW_PATHS.get(workflowName);
-        return path ? `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${path}` : `https://github.com/${REPO_OWNER}/${REPO_NAME}/actions`;
+        return path ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${path}` : `https://github.com/${githubRepoOwner}/${githubRepoName}/actions`;
     };
 
     const toggleCategory = (categoryId: string) => {
