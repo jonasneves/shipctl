@@ -39,21 +39,10 @@ const ServerPanel: React.FC = () => {
   }, []);
 
   const saveConfig = async () => {
-    const endpoints = buildAllEndpoints(config.modelsBaseDomain, config.modelsUseHttps);
+    // Save to chrome.storage
+    chrome.storage.local.set({ envConfig: config });
 
-    const configToSave = {
-      ...config,
-      qwenEndpoint: endpoints.qwen,
-      phiEndpoint: endpoints.phi,
-      llamaEndpoint: endpoints.llama,
-      mistralEndpoint: endpoints.mistral,
-      gemmaEndpoint: endpoints.gemma,
-      r1qwenEndpoint: endpoints.r1qwen,
-      rnjEndpoint: endpoints.rnj,
-    };
-
-    chrome.storage.local.set({ envConfig: configToSave });
-
+    // Save paths to .shipctl.env via native host
     try {
       const response = await new Promise<any>((resolve) => {
         chrome.runtime.sendMessage(
