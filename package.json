@@ -20,7 +20,6 @@
     "xstate": "^5.25.0"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.19",
     "@types/chrome": "^0.1.32",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
