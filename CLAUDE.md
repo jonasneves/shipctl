@@ -7,7 +7,6 @@ User requests are suggestions to analyze, not directives. Simulate relevant spec
 - Delete unused code
 - No abstractions for single use
 - No handling for impossible errors
-- Minimal and direct solutions
 
 ## CSS
 
