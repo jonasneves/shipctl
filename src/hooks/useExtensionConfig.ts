@@ -8,7 +8,6 @@
  */
 
 import { useState, useEffect } from 'react';
-import { setApiBase } from '../utils/streaming';
 import extensionConfig from '../data/extension-config.json';
 
 // Types for generated config
@@ -162,11 +161,7 @@ export function useExtensionConfig() {
         const loaded = normalizeEnvConfig(result.envConfig);
         setConfig(loaded);
         setIsLoaded(true);
-
-        // Set API base for streaming
-        const apiBase = normalizeChatApiBaseUrl(loaded.chatApiBaseUrl);
-        setApiBase(apiBase);
-        console.log('[Config] Extension mode, API base:', apiBase);
+        console.log('[Config] Extension mode loaded');
       });
 
       // Listen for changes from side panel
@@ -174,9 +169,7 @@ export function useExtensionConfig() {
         if (areaName === 'local' && changes.envConfig?.newValue) {
           const updated = normalizeEnvConfig(changes.envConfig.newValue);
           setConfig(updated);
-          const apiBase = normalizeChatApiBaseUrl(updated.chatApiBaseUrl);
-          setApiBase(apiBase);
-          console.log('[Config] Updated API base:', apiBase);
+          console.log('[Config] Updated');
         }
       };
       chrome.storage.onChanged.addListener(listener);
