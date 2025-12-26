@@ -6,8 +6,8 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-// Legacy: Native messaging is deprecated in favor of HTTP API (api-server/server.py)
-const NATIVE_HOST_NAME = 'io.neevs.shipctl';
+// Native messaging host for local backend control
+const NATIVE_HOST_NAME = 'io.neevs.serverless_llm';
 
 function sendNativeMessage(payload) {
   return new Promise((resolve) => {

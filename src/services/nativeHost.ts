@@ -12,50 +12,43 @@ interface StatusResponse extends NativeResponse {
 }
 
 class NativeHost {
-  private apiBase = 'http://127.0.0.1:9876';
-
-  private async httpRequest<T = any>(endpoint: string, body: any): Promise<NativeResponse<T>> {
-    try {
-      const response = await fetch(`${this.apiBase}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        return { ok: false, error };
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (e: any) {
-      return { ok: false, error: e?.message || String(e) };
-    }
+  private async sendMessage(payload: any): Promise<NativeResponse> {
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage(
+        { type: 'native_backend', payload },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({ ok: false, error: chrome.runtime.lastError.message });
+          } else {
+            resolve(response || { ok: false, error: 'No response from native host' });
+          }
+        }
+      );
+    });
   }
 
   async status(chatApiBaseUrl: string): Promise<StatusResponse> {
-    return this.httpRequest('/api/status', { chatApiBaseUrl });
+    return this.sendMessage({ action: 'status', chatApiBaseUrl });
   }
 
   async start(mode: string): Promise<NativeResponse> {
-    return this.httpRequest('/api/start', { mode });
+    return this.sendMessage({ action: 'start', mode });
   }
 
   async stop(): Promise<NativeResponse> {
-    return this.httpRequest('/api/stop', {});
+    return this.sendMessage({ action: 'stop' });
   }
 
   async logs(): Promise<NativeResponse> {
-    return this.httpRequest('/api/logs', {});
+    return this.sendMessage({ action: 'logs' });
   }
 
   async make(target: string): Promise<NativeResponse> {
-    return this.httpRequest('/api/make', { target });
+    return this.sendMessage({ action: 'make', target });
   }
 
   async saveConfig(pythonPath: string, repoPath: string): Promise<NativeResponse> {
-    return this.httpRequest('/api/config', { pythonPath, repoPath });
+    return this.sendMessage({ action: 'save_config', pythonPath, repoPath });
   }
 }
 
