@@ -53,7 +53,6 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     const [buildNativeError, setBuildNativeError] = useState<string | null>(null);
     const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
     const refreshInFlight = useRef(false);
-    const workflowsRef = useRef<Map<string, WorkflowInfo>>(new Map());
 
     const github = useMemo(() => new GitHubService(githubToken, githubRepoOwner, githubRepoName), [githubToken, githubRepoOwner, githubRepoName]);
 
@@ -202,7 +201,6 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 if (key) wfMap.set(key.name, { id: wf.id, name: key.name, path: wf.path });
             }
             setWorkflows(wfMap);
-            workflowsRef.current = wfMap;
             setError(null);
         } catch (err: any) {
             setError(err.message);
@@ -210,12 +208,12 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     }, [githubToken, github]);
 
     const fetchLatestRuns = useCallback(async () => {
-        if (!githubToken || workflowsRef.current.size === 0) return;
+        if (!githubToken || workflows.size === 0) return;
 
         const newRuns = new Map<string, WorkflowRun | null>();
         let activeCount = 0;
 
-        for (const [name, wf] of workflowsRef.current) {
+        for (const [name, wf] of workflows) {
             try {
                 const run = await github.getLatestRun(wf.id);
                 newRuns.set(name, run);
@@ -228,7 +226,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         setRuns(newRuns);
         onActiveDeploymentsChange?.(activeCount);
         setLoading(false);
-    }, [githubToken, github, onActiveDeploymentsChange]);
+    }, [githubToken, github, workflows, onActiveDeploymentsChange]);
 
     const refresh = useCallback(async () => {
         if (refreshInFlight.current) return;
@@ -296,29 +294,6 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
 
         return () => clearInterval(interval);
     }, [fetchLatestRuns, showOnlyBackend, checkAllModelsHealth]);
-
-
-
-    const defaultTabs: Record<string, 'build' | 'deploy' | 'observe'> = {
-        'chat-api': 'observe',
-    };
-    SERVICES.forEach(service => {
-        defaultTabs[service.key] = 'observe';
-    });
-
-    const [activeTabs, setActiveTabs] = useState<Record<string, 'build' | 'deploy' | 'observe'>>(defaultTabs);
-
-    useEffect(() => {
-        const updatedTabs: Record<string, 'build' | 'deploy' | 'observe'> = { 'chat-api': globalTab };
-        SERVICES.forEach(service => {
-            updatedTabs[service.key] = globalTab;
-        });
-        setActiveTabs(updatedTabs);
-    }, [globalTab]);
-
-    const setActiveTab = (appId: string, tab: 'build' | 'deploy' | 'observe') => {
-        setActiveTabs(prev => ({ ...prev, [appId]: tab }));
-    };
 
     const getDeploymentStatusForApp = (appId: string): 'success' | 'failure' | 'in_progress' | 'queued' | 'unknown' => {
         let workflowName: string | null = null;
@@ -447,37 +422,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         deploymentUrl={chatApp.deploymentUrl}
                         defaultExpanded={false}
                     >
-                        <div className="flex gap-1 mb-3 bg-slate-900/40 p-1 rounded-lg">
-                            <button
-                                onClick={() => setActiveTab(chatApp.id, 'build')}
-                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTabs[chatApp.id] === 'build'
-                                    ? 'bg-slate-700/60 text-white'
-                                    : 'text-slate-400 hover:text-slate-200'
-                                    }`}
-                            >
-                                Build
-                            </button>
-                            <button
-                                onClick={() => setActiveTab(chatApp.id, 'deploy')}
-                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTabs[chatApp.id] === 'deploy'
-                                    ? 'bg-slate-700/60 text-white'
-                                    : 'text-slate-400 hover:text-slate-200'
-                                    }`}
-                            >
-                                Deploy
-                            </button>
-                            <button
-                                onClick={() => setActiveTab(chatApp.id, 'observe')}
-                                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTabs[chatApp.id] === 'observe'
-                                    ? 'bg-slate-700/60 text-white'
-                                    : 'text-slate-400 hover:text-slate-200'
-                                    }`}
-                            >
-                                Observe
-                            </button>
-                        </div>
-
-                        {activeTabs[chatApp.id] === 'build' && (
+                        {globalTab === 'build' && (
                             <BuildPanel
                                 appId={chatApp.id}
                                 buildBusy={buildBusy}
@@ -485,7 +430,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                                 onBuild={runBuild}
                             />
                         )}
-                        {activeTabs[chatApp.id] === 'deploy' && (
+                        {globalTab === 'deploy' && (
                             <DeployPanel
                                 appId={chatApp.id}
                                 githubToken={githubToken}
@@ -496,7 +441,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                                 onRefresh={refresh}
                             />
                         )}
-                        {activeTabs[chatApp.id] === 'observe' && (
+                        {globalTab === 'observe' && (
                             <ObservePanel
                                 appId={chatApp.id}
                                 backendHealth={backendHealth.status}
@@ -539,7 +484,6 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
 
                         {!isCollapsed && services.map(service => {
                             const app = buildApp(service, service.key, service.name);
-                            const activeTab = activeTabs[app.id] || 'observe';
 
                             return (
                                 <AppCard
@@ -556,37 +500,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                                     deploymentUrl={app.deploymentUrl}
                                     defaultExpanded={false}
                                 >
-                                    <div className="flex gap-1 mb-3 bg-slate-900/40 p-1 rounded-lg">
-                                        <button
-                                            onClick={() => setActiveTab(app.id, 'build')}
-                                            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === 'build'
-                                                ? 'bg-slate-700/60 text-white'
-                                                : 'text-slate-400 hover:text-slate-200'
-                                                }`}
-                                        >
-                                            Build
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveTab(app.id, 'deploy')}
-                                            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === 'deploy'
-                                                ? 'bg-slate-700/60 text-white'
-                                                : 'text-slate-400 hover:text-slate-200'
-                                                }`}
-                                        >
-                                            Deploy
-                                        </button>
-                                        <button
-                                            onClick={() => setActiveTab(app.id, 'observe')}
-                                            className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${activeTab === 'observe'
-                                                ? 'bg-slate-700/60 text-white'
-                                                : 'text-slate-400 hover:text-slate-200'
-                                                }`}
-                                        >
-                                            Observe
-                                        </button>
-                                    </div>
-
-                                    {activeTab === 'build' && (
+                                    {globalTab === 'build' && (
                                         <BuildPanel
                                             appId={app.id}
                                             buildBusy={buildBusy}
@@ -594,7 +508,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                                             onBuild={runBuild}
                                         />
                                     )}
-                                    {activeTab === 'deploy' && (
+                                    {globalTab === 'deploy' && (
                                         <DeployPanel
                                             appId={app.id}
                                             githubToken={githubToken}
@@ -605,7 +519,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                                             onRefresh={refresh}
                                         />
                                     )}
-                                    {activeTab === 'observe' && (
+                                    {globalTab === 'observe' && (
                                         <ObservePanel
                                             appId={app.id}
                                             backendHealth={backendHealth.status}
