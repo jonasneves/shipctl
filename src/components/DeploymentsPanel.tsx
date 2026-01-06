@@ -1,19 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AppCard from './AppCard';
-import BuildPanel from './BuildPanel';
-import DeployPanel from './DeployPanel';
-import ObservePanel from './ObservePanel';
+
 import StatusRing from './StatusRing';
-import CategoryHeader from './CategoryHeader';
+import { Zap } from 'lucide-react';
+import DeployPanel from './DeployPanel';
 import {
     SERVICES,
     WORKFLOWS,
-    CATEGORIES,
     WORKFLOW_PATHS,
     SERVICE_TO_WORKFLOW,
     ServiceConfig,
     buildEndpoint,
-    getServicesGroupedByCategory
 } from '../hooks/useExtensionConfig';
 import { GitHubService, type WorkflowRun, type WorkflowInfo } from '../services/github';
 import { healthChecker, type HealthStatus } from '../services/healthCheck';
@@ -51,7 +48,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     const [buildBusy, setBuildBusy] = useState(false);
     const [buildLogTail, setBuildLogTail] = useState<string | null>(null);
     const [buildNativeError, setBuildNativeError] = useState<string | null>(null);
-    const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
+
     const refreshInFlight = useRef(false);
 
     const github = useMemo(() => new GitHubService(githubToken, githubRepoOwner, githubRepoName), [githubToken, githubRepoOwner, githubRepoName]);
@@ -97,16 +94,31 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     }, [chatApiBaseUrl]);
 
     const checkAllModelsHealth = useCallback(async () => {
-        for (const service of SERVICES) {
-            const endpoint = buildEndpoint(service.key, service.localPort, modelsBaseDomain, modelsUseHttps);
-            setModelHealthStatuses(prev => new Map(prev).set(service.key, { status: 'checking' }));
-        }
+        // Set all to checking in one batch
+        setModelHealthStatuses(prev => {
+            const next = new Map(prev);
+            for (const service of SERVICES) {
+                next.set(service.key, { status: 'checking' });
+            }
+            return next;
+        });
 
-        for (const service of SERVICES) {
+        const checks = SERVICES.map(async (service) => {
             const endpoint = buildEndpoint(service.key, service.localPort, modelsBaseDomain, modelsUseHttps);
             const status = await healthChecker.check(endpoint, 3000);
-            setModelHealthStatuses(prev => new Map(prev).set(service.key, status));
-        }
+            return { key: service.key, status };
+        });
+
+        const results = await Promise.all(checks);
+
+        // Batch update all results at once
+        setModelHealthStatuses(prev => {
+            const next = new Map(prev);
+            for (const res of results) {
+                next.set(res.key, res.status);
+            }
+            return next;
+        });
     }, [modelsBaseDomain, modelsUseHttps]);
 
     const refreshBackendStatus = useCallback(async () => {
@@ -265,22 +277,32 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         }
     };
 
-    const triggerCategoryWorkflows = async (category: string) => {
-        const categoryWorkflows = KEY_WORKFLOWS.filter(wf => wf.category === category && wf.serviceKey);
-        for (const wf of categoryWorkflows) {
+    const triggerAllWorkflows = async () => {
+        const allServiceWorkflows = KEY_WORKFLOWS.filter(wf => wf.serviceKey);
+        for (const wf of allServiceWorkflows) {
             await triggerWorkflow(wf.name);
         }
+        // Also trigger Chat workflow
+        await triggerWorkflow('Chat');
     };
 
+    // Initial load and config changes
     useEffect(() => {
         checkBackendHealth();
         refreshBackendStatus();
         checkAllModelsHealth();
 
         if (!showOnlyBackend) {
-            fetchWorkflows().then(() => fetchLatestRuns());
+            fetchWorkflows();
         }
-    }, [checkBackendHealth, refreshBackendStatus, checkAllModelsHealth, fetchWorkflows, fetchLatestRuns, showOnlyBackend]);
+    }, [checkBackendHealth, refreshBackendStatus, checkAllModelsHealth, fetchWorkflows, showOnlyBackend]);
+
+    // Fetch runs when workflows are loaded
+    useEffect(() => {
+        if (workflows.size > 0 && !showOnlyBackend) {
+            fetchLatestRuns();
+        }
+    }, [workflows, fetchLatestRuns, showOnlyBackend]);
 
     useEffect(() => {
         if (showOnlyBackend) return;
@@ -324,17 +346,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         return path ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${path}` : `https://github.com/${githubRepoOwner}/${githubRepoName}/actions`;
     };
 
-    const toggleCategory = (categoryId: string) => {
-        setCollapsedCategories(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(categoryId)) {
-                newSet.delete(categoryId);
-            } else {
-                newSet.add(categoryId);
-            }
-            return newSet;
-        });
-    };
+
 
     const chatEndpoint = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
     const publicDomain = modelsBaseDomain || 'neevs.io';
@@ -381,7 +393,13 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     };
 
     const chatApp = buildApp(null, 'chat-api', 'Chat API', true);
-    const groupedServices = getServicesGroupedByCategory();
+
+
+    // Flatten all services
+    const allApps = [
+        chatApp,
+        ...SERVICES.map(service => buildApp(service, service.key, service.name))
+    ];
 
     return (
         <div className="space-y-4 pt-2">
@@ -396,43 +414,45 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 onRefresh={refresh}
             />
 
-            {/* Core Services (Chat API) */}
-            <div className="space-y-2">
-                <CategoryHeader
-                    id="core"
-                    name="Core Services"
-                    onlineCount={backendHealth.status === 'ok' ? 1 : 0}
-                    totalCount={1}
-                    isCollapsed={collapsedCategories.has('core')}
-                    onToggle={() => toggleCategory('core')}
-                />
+            {/* Deploy All Button */}
+            <button
+                onClick={triggerAllWorkflows}
+                disabled={!!triggering || !githubToken}
+                className={`
+                    w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
+                    transition-all duration-200
+                    ${triggering
+                        ? 'bg-blue-500/20 text-blue-400 cursor-wait'
+                        : !githubToken
+                            ? 'bg-slate-700/30 text-slate-500 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.98]'
+                    }
+                `}
+            >
+                <Zap className={`w-4 h-4 ${triggering ? 'animate-pulse' : ''}`} />
+                <span>{triggering ? 'Deploying...' : 'Deploy All'}</span>
+            </button>
 
-                {!collapsedCategories.has('core') && (
+            {/* All Services (flat list) */}
+            <div className="space-y-2">
+                {allApps.map(app => (
                     <AppCard
-                        key={chatApp.id}
-                        id={chatApp.id}
-                        name={chatApp.name}
-                        status={chatApp.status}
-                        deploymentStatus={chatApp.deploymentStatus}
-                        localStatus={chatApp.localStatus}
-                        latency={chatApp.latency}
-                        publicEndpoint={chatApp.publicEndpoint}
-                        endpointUrl={chatApp.endpointUrl}
-                        localEndpointUrl={chatApp.localEndpointUrl}
-                        deploymentUrl={chatApp.deploymentUrl}
+                        key={app.id}
+                        id={app.id}
+                        name={app.name}
+                        status={app.status}
+                        deploymentStatus={app.deploymentStatus}
+                        localStatus={app.localStatus}
+                        latency={app.latency}
+                        publicEndpoint={app.publicEndpoint}
+                        endpointUrl={app.endpointUrl}
+                        localEndpointUrl={app.localEndpointUrl}
+                        deploymentUrl={app.deploymentUrl}
                         defaultExpanded={false}
                     >
-                        {globalTab === 'build' && (
-                            <BuildPanel
-                                appId={chatApp.id}
-                                buildBusy={buildBusy}
-                                buildLogTail={buildLogTail}
-                                onBuild={runBuild}
-                            />
-                        )}
                         {globalTab === 'deploy' && (
                             <DeployPanel
-                                appId={chatApp.id}
+                                appId={app.id}
                                 githubToken={githubToken}
                                 runs={runs}
                                 triggering={triggering}
@@ -441,105 +461,9 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                                 onRefresh={refresh}
                             />
                         )}
-                        {globalTab === 'observe' && (
-                            <ObservePanel
-                                appId={chatApp.id}
-                                backendHealth={backendHealth.status}
-                                backendProcess={backendProcess}
-                                backendPid={backendPid}
-                                backendBusy={backendBusy}
-                                backendLogTail={backendLogTail}
-                                backendNativeError={backendNativeError}
-                                chatApiBaseUrl={chatApiBaseUrl}
-                                onStart={startBackend}
-                                onStop={stopBackend}
-                                onFetchLogs={fetchBackendLogs}
-                            />
-                        )}
                     </AppCard>
-                )}
+                ))}
             </div>
-
-            {/* Model Categories */}
-            {CATEGORIES.filter(cat => cat.id !== 'core').map(category => {
-                const services = groupedServices.get(category.id) || [];
-                if (services.length === 0) return null;
-
-                const categoryOnline = services.filter(s => modelHealthStatuses.get(s.key)?.status === 'ok').length;
-                const isCollapsed = collapsedCategories.has(category.id);
-
-                return (
-                    <div key={category.id} className="space-y-2">
-                        <CategoryHeader
-                            id={category.id}
-                            name={category.name}
-                            onlineCount={categoryOnline}
-                            totalCount={services.length}
-                            isCollapsed={isCollapsed}
-                            onToggle={() => toggleCategory(category.id)}
-                            showDeployAll={true}
-                            onDeployAll={() => triggerCategoryWorkflows(category.id)}
-                            isDeploying={!!triggering}
-                        />
-
-                        {!isCollapsed && services.map(service => {
-                            const app = buildApp(service, service.key, service.name);
-
-                            return (
-                                <AppCard
-                                    key={app.id}
-                                    id={app.id}
-                                    name={app.name}
-                                    status={app.status}
-                                    deploymentStatus={app.deploymentStatus}
-                                    localStatus={app.localStatus}
-                                    latency={app.latency}
-                                    publicEndpoint={app.publicEndpoint}
-                                    endpointUrl={app.endpointUrl}
-                                    localEndpointUrl={app.localEndpointUrl}
-                                    deploymentUrl={app.deploymentUrl}
-                                    defaultExpanded={false}
-                                >
-                                    {globalTab === 'build' && (
-                                        <BuildPanel
-                                            appId={app.id}
-                                            buildBusy={buildBusy}
-                                            buildLogTail={buildLogTail}
-                                            onBuild={runBuild}
-                                        />
-                                    )}
-                                    {globalTab === 'deploy' && (
-                                        <DeployPanel
-                                            appId={app.id}
-                                            githubToken={githubToken}
-                                            runs={runs}
-                                            triggering={triggering}
-                                            loading={loading}
-                                            onDeploy={triggerWorkflow}
-                                            onRefresh={refresh}
-                                        />
-                                    )}
-                                    {globalTab === 'observe' && (
-                                        <ObservePanel
-                                            appId={app.id}
-                                            backendHealth={backendHealth.status}
-                                            backendProcess={backendProcess}
-                                            backendPid={backendPid}
-                                            backendBusy={backendBusy}
-                                            backendLogTail={backendLogTail}
-                                            backendNativeError={backendNativeError}
-                                            chatApiBaseUrl={chatApiBaseUrl}
-                                            onStart={startBackend}
-                                            onStop={stopBackend}
-                                            onFetchLogs={fetchBackendLogs}
-                                        />
-                                    )}
-                                </AppCard>
-                            );
-                        })}
-                    </div>
-                );
-            })}
 
             {/* Build Error (global) */}
             {buildNativeError && (
