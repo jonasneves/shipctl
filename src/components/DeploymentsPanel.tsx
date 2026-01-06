@@ -37,11 +37,11 @@ const ServiceDetails: React.FC<{
     build: React.ReactNode;
     observe: React.ReactNode;
 }> = ({ deploy, build, observe }) => {
-    const [activeTab, setActiveTab] = useState<'deploy' | 'build' | 'observe'>('deploy');
+    const [activeTab, setActiveTab] = useState<'deploy' | 'build' | 'observe'>('build');
 
     const tabs = [
-        { id: 'deploy', label: 'Deploy' },
         { id: 'build', label: 'Build' },
+        { id: 'deploy', label: 'Deploy' },
         { id: 'observe', label: 'Observe' },
     ] as const;
 
