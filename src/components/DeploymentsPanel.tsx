@@ -4,7 +4,7 @@ import AppCard from './AppCard';
 import BuildPanel from './BuildPanel';
 import ObservePanel from './ObservePanel';
 import StatusRing from './StatusRing';
-import { Zap, Rocket, Package, Workflow } from 'lucide-react';
+import { Zap, Rocket, Package, Workflow, Search } from 'lucide-react';
 import DeployPanel from './DeployPanel';
 import {
     SERVICES,
@@ -88,6 +88,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
     const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [triggering, setTriggering] = useState<string | null>(null);
     const [backendHealth, setBackendHealth] = useState<HealthStatus>({ status: 'checking' });
@@ -455,6 +456,37 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         ...SERVICES.map(service => buildApp(service, service.key, service.name))
     ];
 
+    const filteredAndSortedApps = useMemo(() => {
+        let apps = [...allApps];
+
+        // Filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            apps = apps.filter(app => app.name.toLowerCase().includes(query) || app.id.toLowerCase().includes(query));
+        }
+
+        // Sort
+        apps.sort((a, b) => {
+            // Helper to get score (Higher is better/top)
+            const getScore = (app: typeof a) => {
+                const isDeploying = app.deploymentStatus === 'in_progress' || app.deploymentStatus === 'queued';
+                if (app.status === 'running' || app.status === 'ok' || isDeploying) return 3;
+                if (app.status === 'checking') return 2;
+                return 1; // down/stopped/unknown
+            };
+
+            const scoreA = getScore(a);
+            const scoreB = getScore(b);
+
+            if (scoreA !== scoreB) return scoreB - scoreA; // Descending score
+
+            // Tie-breaker: Name
+            return a.name.localeCompare(b.name);
+        });
+
+        return apps;
+    }, [allApps, searchQuery]);
+
     return (
         <div className="space-y-4 pt-2">
             {/* Visual Status Ring */}
@@ -521,9 +553,21 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 </a>
             </div>
 
+            {/* Search Bar */}
+            <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-blue-400 transition-colors" />
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Filter apps..."
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-800/40 border border-slate-700/50 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:bg-slate-800/60 focus:border-blue-500/50 transition-all"
+                />
+            </div>
+
             {/* All Services (flat list) */}
             <div className="space-y-2">
-                {allApps.map(app => {
+                {filteredAndSortedApps.map(app => {
                     // Find workflow and run info for this app
                     const serviceConfig = SERVICES.find(s => s.key === app.id);
                     const wfName = serviceConfig
