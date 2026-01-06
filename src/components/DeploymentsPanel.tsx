@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AppCard from './AppCard';
 
+import BuildPanel from './BuildPanel';
+import ObservePanel from './ObservePanel';
 import StatusRing from './StatusRing';
 import { Zap } from 'lucide-react';
 import DeployPanel from './DeployPanel';
@@ -450,17 +452,42 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         deploymentUrl={app.deploymentUrl}
                         defaultExpanded={false}
                     >
-                        {globalTab === 'deploy' && (
-                            <DeployPanel
+                        <DeployPanel
+                            appId={app.id}
+                            githubToken={githubToken}
+                            runs={runs}
+                            triggering={triggering}
+                            loading={loading}
+                            onDeploy={triggerWorkflow}
+                            onRefresh={refresh}
+                        />
+
+                        {/* Separator */}
+                        <div className="h-px bg-white/5 my-2" />
+
+                        {/* Build & Observe (Stacked) */}
+                        <div className="space-y-3">
+                            <BuildPanel
                                 appId={app.id}
-                                githubToken={githubToken}
-                                runs={runs}
-                                triggering={triggering}
-                                loading={loading}
-                                onDeploy={triggerWorkflow}
-                                onRefresh={refresh}
+                                buildBusy={buildBusy}
+                                buildLogTail={buildLogTail}
+                                onBuild={runBuild}
                             />
-                        )}
+
+                            <ObservePanel
+                                appId={app.id}
+                                backendHealth={backendHealth.status}
+                                backendProcess={backendProcess}
+                                backendPid={backendPid}
+                                backendBusy={backendBusy}
+                                backendLogTail={backendLogTail}
+                                backendNativeError={backendNativeError}
+                                chatApiBaseUrl={chatApiBaseUrl}
+                                onStart={startBackend}
+                                onStop={stopBackend}
+                                onFetchLogs={fetchBackendLogs}
+                            />
+                        </div>
                     </AppCard>
                 ))}
             </div>
