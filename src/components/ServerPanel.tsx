@@ -258,7 +258,7 @@ const ServerPanel: React.FC = () => {
               chatApiBaseUrl={config.chatApiBaseUrl}
               modelsBaseDomain={config.modelsBaseDomain}
               modelsUseHttps={config.modelsUseHttps}
-              globalTab="deploy"
+
               showOnlyBackend={false}
               onBackendStatusChange={setBackendStatus}
               onActiveDeploymentsChange={setActiveDeployments}

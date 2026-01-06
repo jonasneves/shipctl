@@ -26,7 +26,6 @@ interface DeploymentsPanelProps {
     chatApiBaseUrl: string;
     modelsBaseDomain: string;
     modelsUseHttps: boolean;
-    globalTab: 'build' | 'deploy' | 'observe';
     showOnlyBackend?: boolean;
     onBackendStatusChange?: (status: { process: 'running' | 'stopped' | 'unknown'; mode: string | null }) => void;
     onActiveDeploymentsChange?: (count: number) => void;
@@ -34,7 +33,7 @@ interface DeploymentsPanelProps {
 
 const KEY_WORKFLOWS = WORKFLOWS;
 
-const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, globalTab, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange }) => {
+const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange }) => {
     const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
     const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
     const [loading, setLoading] = useState(true);
