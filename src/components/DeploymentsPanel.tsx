@@ -477,7 +477,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                             totalCount={services.length}
                             isCollapsed={isCollapsed}
                             onToggle={() => toggleCategory(category.id)}
-                            showDeployAll={globalTab === 'deploy'}
+                            showDeployAll={true}
                             onDeployAll={() => triggerCategoryWorkflows(category.id)}
                             isDeploying={!!triggering}
                         />

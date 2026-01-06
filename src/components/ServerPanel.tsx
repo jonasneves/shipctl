@@ -19,7 +19,7 @@ const ServerPanel: React.FC = () => {
   const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
   const [showConfig, setShowConfig] = useState(false);
   const [showToken, setShowToken] = useState(false);
-  const [globalTab, setGlobalTab] = useState<'build' | 'deploy' | 'observe'>('observe');
+
   const [, setBackendStatus] = useState<{ process: 'running' | 'stopped' | 'unknown'; mode: string | null }>({ process: 'unknown', mode: null });
   const [, setActiveDeployments] = useState(0);
 
@@ -67,27 +67,11 @@ const ServerPanel: React.FC = () => {
 
       {/* Compact Header */}
       <div className="relative z-10 px-4 py-2.5 bg-slate-900/80 backdrop-blur-xl border-b border-white/5">
-        <div className="relative flex items-center justify-center">
-          {/* Mode Switcher */}
-          <div className="flex p-0.5 bg-slate-800/60 rounded-full border border-slate-700/40">
-            {(['build', 'deploy', 'observe'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setGlobalTab(tab)}
-                className={`px-3 py-1 text-[11px] font-medium rounded-full transition-all ${globalTab === tab
-                    ? 'bg-gradient-to-r from-blue-500/30 to-blue-600/30 text-white shadow-inner shadow-blue-500/20'
-                    : 'text-slate-400 hover:text-slate-200'
-                  }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-
+        <div className="relative flex items-center justify-end">
           {/* Settings Button */}
           <button
             onClick={() => setShowConfig(!showConfig)}
-            className={`absolute right-0 w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${showConfig
+            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${showConfig
               ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
               : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
@@ -274,7 +258,7 @@ const ServerPanel: React.FC = () => {
               chatApiBaseUrl={config.chatApiBaseUrl}
               modelsBaseDomain={config.modelsBaseDomain}
               modelsUseHttps={config.modelsUseHttps}
-              globalTab={globalTab}
+              globalTab="deploy"
               showOnlyBackend={false}
               onBackendStatusChange={setBackendStatus}
               onActiveDeploymentsChange={setActiveDeployments}

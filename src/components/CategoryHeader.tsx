@@ -101,7 +101,7 @@ const CategoryHeader: React.FC<CategoryHeaderProps> = ({
             </button>
 
             {/* Right: Deploy All button */}
-            {showDeployAll && !isCollapsed && (
+            {showDeployAll && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
