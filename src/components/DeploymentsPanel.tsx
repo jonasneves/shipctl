@@ -31,6 +31,56 @@ interface DeploymentsPanelProps {
     onActiveDeploymentsChange?: (count: number) => void;
 }
 
+const ServiceDetails: React.FC<{
+    deploy: React.ReactNode;
+    build: React.ReactNode;
+    observe: React.ReactNode;
+}> = ({ deploy, build, observe }) => {
+    const [activeTab, setActiveTab] = useState<'deploy' | 'build' | 'observe'>('deploy');
+
+    const tabs = [
+        { id: 'deploy', label: 'Deploy' },
+        { id: 'build', label: 'Build' },
+        { id: 'observe', label: 'Observe' },
+    ] as const;
+
+    return (
+        <div className="flex flex-col">
+            {/* Tab Header */}
+            <div className="flex items-center gap-1 p-1 bg-slate-900/30 border-b border-slate-700/30">
+                {tabs.map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`
+                            flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all
+                            ${activeTab === tab.id
+                                ? 'bg-slate-700 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                            }
+                        `}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Tab Content */}
+            <div className="p-3 bg-slate-900/20 min-h-[150px]">
+                <div className={activeTab === 'deploy' ? 'block' : 'hidden'}>
+                    {deploy}
+                </div>
+                <div className={activeTab === 'build' ? 'block' : 'hidden'}>
+                    {build}
+                </div>
+                <div className={activeTab === 'observe' ? 'block' : 'hidden'}>
+                    {observe}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const KEY_WORKFLOWS = WORKFLOWS;
 
 const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange }) => {
@@ -436,80 +486,94 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
 
             {/* All Services (flat list) */}
             <div className="space-y-2">
-                {allApps.map(app => (
-                    <AppCard
-                        key={app.id}
-                        id={app.id}
-                        name={app.name}
-                        status={app.status}
-                        deploymentStatus={app.deploymentStatus}
-                        localStatus={app.localStatus}
-                        latency={app.latency}
-                        publicEndpoint={app.publicEndpoint}
-                        endpointUrl={app.endpointUrl}
-                        localEndpointUrl={app.localEndpointUrl}
-                        deploymentUrl={app.deploymentUrl}
-                        defaultExpanded={false}
-                    >
-                        <DeployPanel
-                            appId={app.id}
-                            githubToken={githubToken}
-                            runs={runs}
-                            triggering={triggering}
-                            loading={loading}
-                            onDeploy={triggerWorkflow}
-                            onRefresh={refresh}
-                        />
+                {allApps.map(app => {
+                    // Find workflow and run info for this app
+                    const serviceConfig = SERVICES.find(s => s.key === app.id);
+                    const wfName = serviceConfig
+                        ? (KEY_WORKFLOWS.find(k => k.serviceKey === app.id)?.name)
+                        : 'Chat';
+                    const wf = workflows.get(wfName || '');
+                    const run = runs.get(wfName || '');
 
-                        {/* Separator */}
-                        <div className="h-px bg-white/5 my-2" />
-
-                        {/* Build & Observe (Stacked) */}
-                        <div className="space-y-3">
-                            <BuildPanel
-                                appId={app.id}
-                                buildBusy={buildBusy}
-                                buildLogTail={buildLogTail}
-                                onBuild={runBuild}
+                    return (
+                        <AppCard
+                            key={app.id}
+                            id={app.id}
+                            name={app.name}
+                            status={app.status}
+                            deploymentStatus={app.deploymentStatus}
+                            localStatus={app.localStatus}
+                            latency={app.latency}
+                            publicEndpoint={app.publicEndpoint}
+                            endpointUrl={app.endpointUrl}
+                            localEndpointUrl={app.localEndpointUrl}
+                            deploymentUrl={app.deploymentUrl}
+                            defaultExpanded={false}
+                        >
+                            <ServiceDetails
+                                deploy={
+                                    <DeployPanel
+                                        appId={app.id}
+                                        githubToken={githubToken}
+                                        runs={runs}
+                                        triggering={triggering}
+                                        loading={loading}
+                                        onDeploy={triggerWorkflow}
+                                        onRefresh={refresh}
+                                    />
+                                }
+                                build={
+                                    <BuildPanel
+                                        appId={app.id}
+                                        buildBusy={buildBusy}
+                                        buildLogTail={buildLogTail}
+                                        onBuild={runBuild}
+                                    />
+                                }
+                                observe={
+                                    <ObservePanel
+                                        appId={app.id}
+                                        backendHealth={backendHealth.status}
+                                        backendProcess={backendProcess}
+                                        backendPid={backendPid}
+                                        backendBusy={backendBusy}
+                                        backendLogTail={backendLogTail}
+                                        backendNativeError={backendNativeError}
+                                        chatApiBaseUrl={chatApiBaseUrl}
+                                        onStart={startBackend}
+                                        onStop={stopBackend}
+                                        onFetchLogs={fetchBackendLogs}
+                                    />
+                                }
                             />
-
-                            <ObservePanel
-                                appId={app.id}
-                                backendHealth={backendHealth.status}
-                                backendProcess={backendProcess}
-                                backendPid={backendPid}
-                                backendBusy={backendBusy}
-                                backendLogTail={backendLogTail}
-                                backendNativeError={backendNativeError}
-                                chatApiBaseUrl={chatApiBaseUrl}
-                                onStart={startBackend}
-                                onStop={stopBackend}
-                                onFetchLogs={fetchBackendLogs}
-                            />
-                        </div>
-                    </AppCard>
-                ))}
+                        </AppCard>
+                    );
+                })}
             </div>
 
             {/* Build Error (global) */}
-            {buildNativeError && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <span className="text-[10px] text-amber-300">{buildNativeError}</span>
-                </div>
-            )}
+            {
+                buildNativeError && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <span className="text-[10px] text-amber-300">{buildNativeError}</span>
+                    </div>
+                )
+            }
 
             {/* Deployment Error (global) */}
-            {error && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <span className="text-[10px] text-amber-300">{error}</span>
-                </div>
-            )}
+            {
+                error && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                        <span className="text-[10px] text-amber-300">{error}</span>
+                    </div>
+                )
+            }
 
             {/* Keyboard shortcuts hint */}
             <div className="text-center text-[9px] text-slate-600 pt-2">
                 Press <kbd className="px-1 py-0.5 bg-slate-800 rounded text-slate-500">R</kbd> to refresh
             </div>
-        </div>
+        </div >
     );
 };
 

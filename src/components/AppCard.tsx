@@ -31,7 +31,7 @@ const getLatencyColor = (latency?: number) => {
 
 // Status dot with pulse for deploying
 const StatusDot: React.FC<{
-  status: 'ok' | 'down' | 'checking' | 'deploying' | 'running' | 'stopped' | 'building';
+  status: 'ok' | 'down' | 'checking' | 'deploying' | 'running' | 'stopped' | 'building' | 'unknown';
   size?: 'sm' | 'md';
   pulse?: boolean;
 }> = ({ status, size = 'sm', pulse }) => {
@@ -45,7 +45,8 @@ const StatusDot: React.FC<{
     checking: 'bg-amber-400',
     building: 'bg-amber-400',
     deploying: 'bg-blue-400',
-  }[status] || 'bg-slate-400';
+    unknown: 'bg-slate-600',
+  }[status] || 'bg-slate-600';
 
   const shouldPulse = pulse || status === 'checking' || status === 'deploying' || status === 'building';
 
@@ -134,7 +135,7 @@ const AppCard: React.FC<AppCardProps> = ({
           {endpointUrl && (
             <a
               href={endpointUrl}
-              target="_blank"
+              target="_blank" // turbo
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
@@ -155,10 +156,10 @@ const AppCard: React.FC<AppCardProps> = ({
       {/* Expanded Content */}
       <div className={`
         overflow-hidden transition-all duration-200 ease-out
-        ${expanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}
+        ${expanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}
       `}>
         {children && (
-          <div className="border-t border-slate-700/30 p-3">
+          <div className="border-t border-slate-700/30">
             {children}
           </div>
         )}
@@ -197,13 +198,18 @@ const AppCard: React.FC<AppCardProps> = ({
                 deploymentStatus === 'success' ? 'ok' :
                   deploymentStatus === 'failure' ? 'down' :
                     deploymentStatus === 'in_progress' ? 'deploying' :
-                      'checking'
+                      deploymentStatus === 'queued' ? 'deploying' :
+                        'unknown'
               }
               size="sm"
               pulse={isDeploying}
             />
             <span className="text-slate-500">
-              {isDeploying ? 'Deploying' : 'Deploy'}
+              {isDeploying ? 'Deploying' :
+                deploymentStatus === 'success' ? 'Deploy' :
+                  deploymentStatus === 'failure' ? 'Failed' :
+                    'Not Deployed'
+              }
             </span>
           </a>
         </div>
