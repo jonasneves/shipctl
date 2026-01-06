@@ -4,7 +4,7 @@ import AppCard from './AppCard';
 import BuildPanel from './BuildPanel';
 import ObservePanel from './ObservePanel';
 import StatusRing from './StatusRing';
-import { Zap } from 'lucide-react';
+import { Zap, Rocket, Package, Workflow } from 'lucide-react';
 import DeployPanel from './DeployPanel';
 import {
     SERVICES,
@@ -469,26 +469,58 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 onSettings={onOpenSettings}
             />
 
-            {/* Deploy All Button */}
-            <button
-                onClick={triggerAllWorkflows}
-                disabled={!!triggering || !githubToken}
-                className={`
-                    w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
-                    transition-all duration-200
-                    ${triggering
-                        ? 'bg-blue-500/20 text-blue-400 cursor-wait'
-                        : !githubToken
-                            ? 'bg-slate-700/30 text-slate-500 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.98]'
-                    }
-                `}
-            >
-                <Zap className={`w-4 h-4 ${triggering ? 'animate-pulse' : ''}`} />
-                <span>{triggering ? 'Deploying...' : 'Deploy All'}</span>
-            </button>
+            {/* Global Actions */}
+            <div className="flex items-center gap-3 pt-2">
+                {/* Deploy All Button */}
+                <button
+                    onClick={triggerAllWorkflows}
+                    disabled={!!triggering || !githubToken}
+                    className={`
+                        flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
+                        transition-all duration-200
+                        ${triggering
+                            ? 'bg-blue-500/20 text-blue-400 cursor-wait'
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.98]'
+                        }
+                        disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
+                    `}
+                >
+                    <Rocket className={`w-4 h-4 ${triggering ? 'animate-bounce' : ''}`} />
+                    <span>{triggering ? 'Deploying...' : 'Deploy All'}</span>
+                </button>
 
-            {/* All Services (flat list) */}
+                {/* Build Images Button */}
+                <button
+                    onClick={() => triggerWorkflow('Build Images')}
+                    disabled={!!triggering || !githubToken}
+                    className={`
+                        flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
+                        transition-all duration-200
+                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 hover:border-slate-600
+                        disabled:opacity-50 disabled:cursor-not-allowed
+                    `}
+                >
+                    <Package className="w-4 h-4" />
+                    <span>Build Images</span>
+                </button>
+
+                {/* View Actions Button */}
+                <a
+                    href={`https://github.com/${githubRepoOwner}/${githubRepoName}/actions`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`
+                        flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-semibold
+                        transition-all duration-200
+                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 hover:border-slate-600
+                        ${(!githubRepoOwner || !githubRepoName) ? 'opacity-50 pointer-events-none' : ''}
+                    `}
+                    title="Open GitHub Actions"
+                >
+                    <Workflow className="w-4 h-4 ml-1" />
+                </a>
+            </div>
+
             {/* All Services (flat list) */}
             <div className="space-y-2">
                 {allApps.map(app => {

@@ -81,7 +81,7 @@ const StatusRing: React.FC<StatusRingProps> = ({
                     </svg>
                     {/* Center text */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <span className={`text-xs font-bold ${healthPercent >= 80 ? 'text-emerald-400' :
+                        <span className={`text-[10px] font-semibold ${healthPercent >= 80 ? 'text-emerald-400' :
                             healthPercent >= 50 ? 'text-amber-400' : 'text-red-400'
                             }`}>
                             {healthPercent}%

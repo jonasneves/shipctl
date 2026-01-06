@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 interface AppCardProps {
   id: string;
@@ -104,13 +104,11 @@ const AppCard: React.FC<AppCardProps> = ({
       >
         {/* Status Indicator */}
         <div className="relative flex-shrink-0">
-          {isDeploying ? (
-            <div className="relative">
-              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-            </div>
-          ) : (
-            <StatusDot status={status} size="md" />
-          )}
+          <StatusDot
+            status={isDeploying ? 'building' : status}
+            size="md"
+            pulse={isDeploying}
+          />
         </div>
 
         {/* Name & Endpoint */}
@@ -130,21 +128,7 @@ const AppCard: React.FC<AppCardProps> = ({
           </span>
         </div>
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          {endpointUrl && (
-            <a
-              href={endpointUrl}
-              target="_blank" // turbo
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="p-1 rounded hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-              title="Open endpoint"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
-        </div>
+
 
         {/* Expand Chevron */}
         <ChevronRight
@@ -169,18 +153,46 @@ const AppCard: React.FC<AppCardProps> = ({
       <div className="border-t border-slate-700/30 px-3 py-2 bg-slate-900/40">
         <div className="flex items-center gap-3 text-[10px]">
           {/* Local Status */}
-          <div className="flex items-center gap-1.5" title={localEndpointUrl || 'Local endpoint'}>
-            <StatusDot status={localStatus || 'down'} size="sm" />
-            <span className="text-slate-500">Local</span>
-          </div>
+          {localEndpointUrl ? (
+            <a
+              href={localEndpointUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
+              title={localEndpointUrl}
+            >
+              <StatusDot status={localStatus || 'down'} size="sm" />
+              <span className="text-slate-500 hover:text-slate-300 transition-colors">Local</span>
+            </a>
+          ) : (
+            <div className="flex items-center gap-1.5 opacity-50 cursor-not-allowed">
+              <StatusDot status={localStatus || 'down'} size="sm" />
+              <span className="text-slate-500">Local</span>
+            </div>
+          )}
 
           <span className="text-slate-700">•</span>
 
-          {/* Public Status */}
-          <div className="flex items-center gap-1.5" title={endpointUrl || publicEndpoint}>
-            <StatusDot status={status} size="sm" />
-            <span className="text-slate-500">Public</span>
-          </div>
+          {/* Cloud Status */}
+          {endpointUrl ? (
+            <a
+              href={endpointUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
+              title={endpointUrl}
+            >
+              <StatusDot status={status} size="sm" />
+              <span className="text-slate-500 hover:text-slate-300 transition-colors">Cloud</span>
+            </a>
+          ) : (
+            <div className="flex items-center gap-1.5" title={publicEndpoint}>
+              <StatusDot status={status} size="sm" />
+              <span className="text-slate-500">Cloud</span>
+            </div>
+          )}
 
           <span className="text-slate-700">•</span>
 
@@ -204,12 +216,8 @@ const AppCard: React.FC<AppCardProps> = ({
               size="sm"
               pulse={isDeploying}
             />
-            <span className="text-slate-500">
-              {isDeploying ? 'Deploying' :
-                deploymentStatus === 'success' ? 'Deploy' :
-                  deploymentStatus === 'failure' ? 'Failed' :
-                    'Not Deployed'
-              }
+            <span className="text-slate-500 hover:text-slate-300 transition-colors">
+              Pipeline
             </span>
           </a>
         </div>
