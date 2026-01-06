@@ -33,18 +33,10 @@
       "context_length": 32768
     },
     {
-      "id": "lfm2-2.6b-exp",
-      "name": "LFM2 2.6B Exp",
-      "type": "local",
-      "priority": 5,
-      "category": "small",
-      "context_length": 32768
-    },
-    {
       "id": "deepseek-r1-distill-qwen-1.5b",
       "name": "DeepSeek R1 1.5B",
       "type": "local",
-      "priority": 6,
+      "priority": 5,
       "category": "reasoning",
       "context_length": 32768
     },
@@ -52,7 +44,7 @@
       "id": "gemma-3-12b-it",
       "name": "Gemma 3 12B",
       "type": "local",
-      "priority": 7,
+      "priority": 6,
       "category": "medium",
       "context_length": 32768
     },
@@ -60,7 +52,7 @@
       "id": "mistral-7b-instruct-v0.3",
       "name": "Mistral 7B v0.3",
       "type": "local",
-      "priority": 8,
+      "priority": 7,
       "category": "medium",
       "context_length": 32768
     },
@@ -76,7 +68,7 @@
       "id": "rnj-1-instruct",
       "name": "RNJ-1 Instruct",
       "type": "local",
-      "priority": 10,
+      "priority": 9,
       "category": "medium",
       "context_length": 32768
     },
@@ -84,7 +76,7 @@
       "id": "llama-3.2-3b",
       "name": "Llama 3.2-3B",
       "type": "local",
-      "priority": 11,
+      "priority": 10,
       "category": "medium",
       "context_length": 32768
     },
@@ -100,7 +92,7 @@
       "id": "nemotron-3-nano-30b-a3b",
       "name": "Nemotron-3 Nano 30B",
       "type": "local",
-      "priority": 13,
+      "priority": 12,
       "category": "reasoning",
       "context_length": 32768
     },
@@ -108,7 +100,7 @@
       "id": "gpt-oss-20b",
       "name": "GPT-OSS 20B",
       "type": "local",
-      "priority": 14,
+      "priority": 13,
       "category": "reasoning",
       "context_length": 32768
     },
@@ -675,6 +667,6 @@
       ]
     }
   ],
-  "fetchedAt": "2026-01-06T18:04:28.171Z",
+  "fetchedAt": "2026-01-06T18:50:53.506Z",
   "source": "build-time"
 }

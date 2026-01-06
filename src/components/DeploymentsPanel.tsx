@@ -420,6 +420,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 endpointUrl: chatPublicUrl,
                 localEndpointUrl: chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1') ? chatEndpoint : undefined,
                 deploymentUrl: runs.get('Chat')?.html_url || buildWorkflowUrl('Chat'),
+                category: 'core' as const,
             };
         }
 
@@ -440,6 +441,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
             endpointUrl: publicEndpointUrl,
             localEndpointUrl: isLocal ? endpoint : undefined,
             deploymentUrl: runs.get(workflowName)?.html_url || buildWorkflowUrl(workflowName),
+            category: service!.category,
         };
     };
 
@@ -484,6 +486,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 <span>{triggering ? 'Deploying...' : 'Deploy All'}</span>
             </button>
 
+            {/* All Services (flat list) */}
             {/* All Services (flat list) */}
             <div className="space-y-2">
                 {allApps.map(app => {
