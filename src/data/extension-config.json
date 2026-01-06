@@ -162,7 +162,7 @@
     },
     {
       "name": "GPT-OSS 20B",
-      "path": "gptoss-inference.yml",
+      "path": "gpt-oss-inference.yml",
       "category": "reasoning",
       "serviceKey": "gptoss"
     }

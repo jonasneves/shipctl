@@ -211,7 +211,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
             const workflows = await github.getWorkflows();
             const wfMap = new Map<string, WorkflowInfo>();
             for (const wf of workflows) {
-                const key = KEY_WORKFLOWS.find(k => wf.path?.endsWith(k.path));
+                const key = KEY_WORKFLOWS.find(k => wf.path === k.path || wf.path?.endsWith(`/${k.path}`));
                 if (key) wfMap.set(key.name, { id: wf.id, name: key.name, path: wf.path });
             }
             setWorkflows(wfMap);

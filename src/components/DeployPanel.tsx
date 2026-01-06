@@ -1,5 +1,6 @@
 import React from 'react';
 import { Rocket, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
+import { SERVICE_TO_WORKFLOW } from '../hooks/useExtensionConfig';
 
 interface WorkflowRun {
   id: number;
@@ -41,14 +42,7 @@ const DeployPanel: React.FC<DeployPanelProps> = ({
 
   const getWorkflowForApp = () => {
     if (appId === 'chat-api') return 'Chat';
-    if (appId === 'qwen') return 'Qwen';
-    if (appId === 'phi') return 'Phi';
-    if (appId === 'llama') return 'Llama';
-    if (appId === 'mistral') return 'Mistral';
-    if (appId === 'gemma') return 'Gemma';
-    if (appId === 'r1qwen') return 'R1 Qwen';
-    if (appId === 'rnj') return 'RNJ';
-    return null;
+    return SERVICE_TO_WORKFLOW.get(appId) || null;
   };
 
   const workflowName = getWorkflowForApp();
@@ -81,20 +75,18 @@ const DeployPanel: React.FC<DeployPanelProps> = ({
       {run && (
         <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg">
           <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${
-              isSuccess ? 'bg-emerald-400'
-              : isFailed ? 'bg-red-400'
-              : isActive ? 'bg-blue-400 animate-pulse'
-              : 'bg-slate-600'
-            }`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${isSuccess ? 'bg-emerald-400'
+                : isFailed ? 'bg-red-400'
+                  : isActive ? 'bg-blue-400 animate-pulse'
+                    : 'bg-slate-600'
+              }`} />
             <div className="flex flex-col">
               <span className="text-[10px] text-slate-400">Last deployment</span>
-              <span className={`text-xs font-medium ${
-                isSuccess ? 'text-emerald-400'
-                : isFailed ? 'text-red-400'
-                : isActive ? 'text-blue-400'
-                : 'text-slate-500'
-              }`}>
+              <span className={`text-xs font-medium ${isSuccess ? 'text-emerald-400'
+                  : isFailed ? 'text-red-400'
+                    : isActive ? 'text-blue-400'
+                      : 'text-slate-500'
+                }`}>
                 {run.conclusion || run.status}
               </span>
             </div>
