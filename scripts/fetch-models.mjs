@@ -4,18 +4,44 @@
  * This allows the extension to work without a backend
  */
 
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const GITHUB_MODELS_CATALOG_URL = 'https://models.github.ai/catalog/models';
 
-// Local models that run on inference servers
-const LOCAL_MODELS = [
-    { id: 'qwen3-4b', name: 'Qwen3 4B', type: 'local', priority: 1, context_length: 128000 },
-    { id: 'deepseek-r1-distill-qwen-1.5b', name: 'DeepSeek R1 1.5B', type: 'local', priority: 2, context_length: 64000 },
-    { id: 'gemma-3-12b-it', name: 'Gemma 3 12B', type: 'local', priority: 3, context_length: 8192 },
-    { id: 'mistral-7b-instruct-v0.3', name: 'Mistral 7B v0.3', type: 'local', priority: 4, context_length: 32768 },
-    { id: 'phi-3-mini', name: 'Phi-3 Mini', type: 'local', priority: 5, context_length: 128000 },
-    { id: 'rnj-1-instruct', name: 'RNJ-1 Instruct', type: 'local', priority: 6, context_length: 8192 },
-    { id: 'llama-3.2-3b', name: 'Llama 3.2-3B', type: 'local', priority: 7, context_length: 128000 },
-];
+function getLocalModels() {
+    try {
+        const configPath = path.resolve(__dirname, '../src/data/extension-config.json');
+        console.log(`📡 Loading local models from: ${configPath}`);
+
+        if (!fs.existsSync(configPath)) {
+            console.warn('⚠️ extension-config.json not found. Run npm run sync first.');
+            return [];
+        }
+
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+        if (config.models && Array.isArray(config.models)) {
+            return config.models.map(m => ({
+                id: m.id,
+                name: m.name,
+                type: 'local',
+                priority: m.priority || 10,
+                category: m.category,
+                // Default context length since it's not in manifest yet
+                context_length: 32768
+            }));
+        }
+        return [];
+    } catch (err) {
+        console.error('❌ Failed to load local config:', err.message);
+        return [];
+    }
+}
 
 async function fetchGitHubModels() {
     console.log('📡 Fetching GitHub Models catalog...');
@@ -66,23 +92,19 @@ async function fetchGitHubModels() {
 }
 
 async function main() {
+    const localModels = getLocalModels();
+    console.log(`✅ Loaded ${localModels.length} local models from manifest`);
+
     const apiModels = await fetchGitHubModels();
 
     const allModels = {
-        models: [...LOCAL_MODELS, ...apiModels],
+        models: [...localModels, ...apiModels],
         fetchedAt: new Date().toISOString(),
         source: 'build-time',
     };
 
-    // Output JSON to stdout (will be captured by build script)
-    console.log('\n📦 Models data:');
-    console.log(JSON.stringify(allModels, null, 2));
-
     // Write to file
-    const fs = await import('fs');
-    const path = await import('path');
     const outPath = path.join(process.cwd(), 'public', 'models.json');
-
     fs.writeFileSync(outPath, JSON.stringify(allModels, null, 2));
     console.log(`\n✅ Wrote ${allModels.models.length} models to ${outPath}`);
 }

@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "build:local": "tsc && vite build --base=/ --outDir dist",
     "fetch-models": "node scripts/fetch-models.mjs",
-    "build:extension": "npm run fetch-models && ./node_modules/.bin/tsc && ./node_modules/.bin/vite build --config vite.config.extension.ts",
+    "sync": "node scripts/sync-apps.js",
+    "build:extension": "npm run sync && npm run fetch-models && ./node_modules/.bin/tsc && ./node_modules/.bin/vite build --config vite.config.extension.ts",
     "preview": "npm run build:local && vite preview --outDir dist",
     "type-check": "tsc --noEmit"
   },
