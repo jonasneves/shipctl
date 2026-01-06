@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Activity } from 'lucide-react';
+import { RefreshCw, Activity, Settings } from 'lucide-react';
 
 interface StatusRingProps {
     online: number;
@@ -9,6 +9,7 @@ interface StatusRingProps {
     total: number;
     loading: boolean;
     onRefresh: () => void;
+    onSettings?: () => void;
 }
 
 /**
@@ -22,6 +23,7 @@ const StatusRing: React.FC<StatusRingProps> = ({
     total,
     loading,
     onRefresh,
+    onSettings,
 }) => {
     const healthPercent = total > 0 ? Math.round((online / total) * 100) : 0;
 
@@ -132,20 +134,31 @@ const StatusRing: React.FC<StatusRingProps> = ({
                 </div>
 
                 {/* Refresh button */}
-                <button
-                    onClick={onRefresh}
-                    disabled={loading}
-                    className={`
-            p-2 rounded-xl transition-all duration-200
-            ${loading
-                            ? 'bg-slate-700/50 text-slate-500'
-                            : 'bg-slate-700/30 text-slate-400 hover:text-white hover:bg-slate-600/50 active:scale-95'
-                        }
-          `}
-                    title="Refresh all (R)"
-                >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                </button>
+                <div className="flex bg-slate-700/30 rounded-xl p-1">
+                    <button
+                        onClick={onRefresh}
+                        disabled={loading}
+                        className={`
+                            p-1.5 rounded-lg transition-all 
+                            ${loading ? 'text-slate-500' : 'text-slate-400 hover:text-white hover:bg-slate-600/50'}
+                        `}
+                        title="Refresh all (R)"
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                    {onSettings && (
+                        <div className="w-px bg-slate-600/30 mx-1" />
+                    )}
+                    {onSettings && (
+                        <button
+                            onClick={onSettings}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-600/50 transition-all"
+                            title="Settings"
+                        >
+                            <Settings className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

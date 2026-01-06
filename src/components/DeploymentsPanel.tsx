@@ -29,6 +29,7 @@ interface DeploymentsPanelProps {
     showOnlyBackend?: boolean;
     onBackendStatusChange?: (status: { process: 'running' | 'stopped' | 'unknown'; mode: string | null }) => void;
     onActiveDeploymentsChange?: (count: number) => void;
+    onOpenSettings?: () => void;
 }
 
 const ServiceDetails: React.FC<{
@@ -83,7 +84,7 @@ const ServiceDetails: React.FC<{
 
 const KEY_WORKFLOWS = WORKFLOWS;
 
-const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange }) => {
+const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange, onOpenSettings }) => {
     const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
     const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -465,6 +466,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 total={stats.total}
                 loading={loading}
                 onRefresh={refresh}
+                onSettings={onOpenSettings}
             />
 
             {/* Deploy All Button */}

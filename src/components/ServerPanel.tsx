@@ -65,29 +65,23 @@ const ServerPanel: React.FC = () => {
         />
       </div>
 
-      {/* Compact Header */}
-      <div className="relative z-10 px-4 py-2.5 bg-slate-900/80 backdrop-blur-xl border-b border-white/5">
-        <div className="relative flex items-center justify-end">
-          {/* Settings Button */}
-          <button
-            onClick={() => setShowConfig(!showConfig)}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200 ${showConfig
-              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-              }`}
-            title="Settings"
-          >
-            <Settings className={`w-4 h-4 transition-transform duration-300 ${showConfig ? 'rotate-90' : ''}`} />
-          </button>
-        </div>
-      </div>
+
 
       {showConfig ? (
         <div className="relative z-10 p-4 space-y-4">
           {/* Settings Header */}
-          <div className="flex items-center gap-2 pb-2 border-b border-slate-700/30">
-            <Sparkles className="w-4 h-4 text-blue-400" />
-            <h2 className="text-sm font-semibold text-white">Configuration</h2>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-700/30">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-400" />
+              <h2 className="text-sm font-semibold text-white">Configuration</h2>
+            </div>
+            <button
+              onClick={() => setShowConfig(false)}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50"
+              title="Close Settings"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 18 18" /></svg>
+            </button>
           </div>
 
           {/* GitHub Token */}
@@ -249,7 +243,7 @@ const ServerPanel: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="relative z-10 overflow-y-auto px-4 pb-4 h-[calc(100vh-60px)]">
+        <div className="relative z-10 overflow-y-auto px-4 pb-4 h-screen">
           <ErrorBoundary>
             <DeploymentsPanel
               githubToken={config.githubToken}
@@ -262,6 +256,7 @@ const ServerPanel: React.FC = () => {
               showOnlyBackend={false}
               onBackendStatusChange={setBackendStatus}
               onActiveDeploymentsChange={setActiveDeployments}
+              onOpenSettings={() => setShowConfig(true)}
             />
           </ErrorBoundary>
         </div>
