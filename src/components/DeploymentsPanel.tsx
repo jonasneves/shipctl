@@ -261,10 +261,22 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         try {
             const workflows = await github.getWorkflows();
             const wfMap = new Map<string, WorkflowInfo>();
-            for (const wf of workflows) {
-                const key = KEY_WORKFLOWS.find(k => wf.path === k.path || wf.path?.endsWith(`/${k.path}`));
-                if (key) wfMap.set(key.name, { id: wf.id, name: key.name, path: wf.path });
+
+            // Map all KEY_WORKFLOWS to their corresponding GitHub workflow
+            // Handle case where multiple models share the same workflow file (inference.yml)
+            for (const keyWf of KEY_WORKFLOWS) {
+                const matchingGhWf = workflows.find(wf =>
+                    wf.path === keyWf.path || wf.path?.endsWith(`/${keyWf.path}`)
+                );
+                if (matchingGhWf) {
+                    wfMap.set(keyWf.name, {
+                        id: matchingGhWf.id,
+                        name: keyWf.name,
+                        path: matchingGhWf.path
+                    });
+                }
             }
+
             setWorkflows(wfMap);
             setError(null);
         } catch (err: any) {
@@ -280,7 +292,11 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
 
         for (const [name, wf] of workflows) {
             try {
-                const run = await github.getLatestRun(wf.id);
+                // For inference workflows, filter by model name
+                const workflowConfig = KEY_WORKFLOWS.find(w => w.name === name);
+                const filterByModel = workflowConfig?.serviceKey;
+
+                const run = await github.getLatestRun(wf.id, filterByModel);
                 newRuns.set(name, run);
                 if (run?.status === 'in_progress' || run?.status === 'queued') activeCount++;
             } catch {
@@ -316,7 +332,14 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         setTriggering(workflowName);
         try {
             const workflowIdentifier = wf?.id ?? fallbackPath;
-            const success = await github.triggerWorkflow(workflowIdentifier!);
+
+            // For inference workflows, pass the model as input
+            const workflowConfig = KEY_WORKFLOWS.find(w => w.name === workflowName);
+            const inputs = workflowConfig?.serviceKey
+                ? { model: workflowConfig.serviceKey }
+                : undefined;
+
+            const success = await github.triggerWorkflow(workflowIdentifier!, inputs);
 
             if (success) {
                 setTimeout(() => refresh(), 3000);

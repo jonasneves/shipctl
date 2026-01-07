@@ -42,25 +42,50 @@ class GitHubService {
     return data.workflows || [];
   }
 
-  async getLatestRun(workflowId: number): Promise<WorkflowRun | null> {
+  async getLatestRun(
+    workflowId: number,
+    filterByName?: string
+  ): Promise<WorkflowRun | null> {
+    // Fetch more runs if we need to filter
+    const perPage = filterByName ? 20 : 1;
     const response = await fetch(
-      `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows/${workflowId}/runs?per_page=1`,
+      `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows/${workflowId}/runs?per_page=${perPage}`,
       { headers: this.headers }
     );
 
     if (!response.ok) return null;
 
     const data = await response.json();
-    return data.workflow_runs?.[0] || null;
+    const runs = data.workflow_runs || [];
+
+    if (!filterByName || runs.length === 0) {
+      return runs[0] || null;
+    }
+
+    // Filter by display_title (run name) - should start with model name
+    // e.g., "qwen • 5h × 1" starts with "qwen"
+    const filtered = runs.find((run: any) =>
+      run.display_title?.toLowerCase().startsWith(filterByName.toLowerCase())
+    );
+
+    return filtered || null;
   }
 
-  async triggerWorkflow(workflowIdentifier: number | string): Promise<boolean> {
+  async triggerWorkflow(
+    workflowIdentifier: number | string,
+    inputs?: Record<string, string>
+  ): Promise<boolean> {
+    const body: any = { ref: 'main' };
+    if (inputs) {
+      body.inputs = inputs;
+    }
+
     const response = await fetch(
       `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows/${workflowIdentifier}/dispatches`,
       {
         method: 'POST',
         headers: { ...this.headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref: 'main' }),
+        body: JSON.stringify(body),
       }
     );
 
