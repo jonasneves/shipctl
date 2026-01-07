@@ -61,11 +61,11 @@ const DeployPanel: React.FC<DeployPanelProps> = ({
   const isActive = run?.status === 'in_progress' || run?.status === 'queued';
 
   return (
-    <div className="space-y-2">
+    <>
       <button
         onClick={() => onDeploy(workflowName)}
         disabled={triggering === workflowName || loading}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-medium text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/20 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Rocket className="w-3.5 h-3.5" />
         <span>Deploy to Cloud</span>
@@ -73,7 +73,7 @@ const DeployPanel: React.FC<DeployPanelProps> = ({
       </button>
 
       {run && (
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg">
+        <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg mt-2">
           <div className="flex items-center gap-2">
             <div className={`w-1.5 h-1.5 rounded-full ${isSuccess ? 'bg-emerald-400'
                 : isFailed ? 'bg-red-400'
@@ -112,7 +112,7 @@ const DeployPanel: React.FC<DeployPanelProps> = ({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

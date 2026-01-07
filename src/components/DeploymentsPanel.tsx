@@ -32,56 +32,6 @@ interface DeploymentsPanelProps {
     onOpenSettings?: () => void;
 }
 
-const ServiceDetails: React.FC<{
-    deploy: React.ReactNode;
-    build: React.ReactNode;
-    observe: React.ReactNode;
-}> = ({ deploy, build, observe }) => {
-    const [activeTab, setActiveTab] = useState<'deploy' | 'build' | 'observe'>('build');
-
-    const tabs = [
-        { id: 'build', label: 'Build' },
-        { id: 'deploy', label: 'Deploy' },
-        { id: 'observe', label: 'Observe' },
-    ] as const;
-
-    return (
-        <div className="flex flex-col">
-            {/* Tab Header */}
-            <div className="flex items-center gap-1 p-1 bg-slate-900/30 border-b border-slate-700/30">
-                {tabs.map((tab) => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`
-                            flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-all
-                            ${activeTab === tab.id
-                                ? 'bg-slate-700 text-white shadow-sm'
-                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                            }
-                        `}
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* Tab Content */}
-            <div className="p-3 bg-slate-900/20 min-h-[150px]">
-                <div className={activeTab === 'deploy' ? 'block' : 'hidden'}>
-                    {deploy}
-                </div>
-                <div className={activeTab === 'build' ? 'block' : 'hidden'}>
-                    {build}
-                </div>
-                <div className={activeTab === 'observe' ? 'block' : 'hidden'}>
-                    {observe}
-                </div>
-            </div>
-        </div>
-    );
-};
-
 const KEY_WORKFLOWS = WORKFLOWS;
 
 const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange, onOpenSettings }) => {
@@ -101,6 +51,9 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     const [buildBusy, setBuildBusy] = useState(false);
     const [buildLogTail, setBuildLogTail] = useState<string | null>(null);
     const [buildNativeError, setBuildNativeError] = useState<string | null>(null);
+    const [modelHealthHistory, setModelHealthHistory] = useState<Map<string, number[]>>(new Map());
+    const [backendHealthHistory, setBackendHealthHistory] = useState<number[]>([]);
+    const [uptimeStats, setUptimeStats] = useState<Map<string, { successful: number; total: number }>>(new Map());
 
     const refreshInFlight = useRef(false);
 
@@ -144,6 +97,12 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         const baseUrl = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
         const status = await healthChecker.check(baseUrl, 5000);
         setBackendHealth(status);
+
+        // Update backend history
+        setBackendHealthHistory(prev => {
+            const latency = status.latency || 0;
+            return [...prev, latency].slice(-10);
+        });
     }, [chatApiBaseUrl]);
 
     const checkAllModelsHealth = useCallback(async () => {
@@ -169,6 +128,30 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
             const next = new Map(prev);
             for (const res of results) {
                 next.set(res.key, res.status);
+            }
+            return next;
+        });
+
+        // Update history tracking
+        setModelHealthHistory(prev => {
+            const next = new Map(prev);
+            for (const res of results) {
+                const existing = prev.get(res.key) || [];
+                const latency = res.status.latency || 0;
+                const newHistory = [...existing, latency].slice(-10);
+                next.set(res.key, newHistory);
+            }
+            return next;
+        });
+
+        // Update uptime stats
+        setUptimeStats(prev => {
+            const next = new Map(prev);
+            for (const res of results) {
+                const existing = prev.get(res.key) || { successful: 0, total: 0 };
+                const successful = existing.successful + (res.status.status === 'ok' ? 1 : 0);
+                const total = existing.total + 1;
+                next.set(res.key, { successful, total });
             }
             return next;
         });
@@ -588,8 +571,8 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 />
             </div>
 
-            {/* All Services (flat list) */}
-            <div className="space-y-2">
+            {/* All Services (grid layout) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                 {filteredAndSortedApps.map(app => {
                     // Find workflow and run info for this app
                     const serviceConfig = SERVICES.find(s => s.key === app.id);
@@ -598,6 +581,9 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         : 'Chat';
                     const wf = workflows.get(wfName || '');
                     const run = runs.get(wfName || '');
+
+                    const uptimeData = uptimeStats.get(app.id);
+                    const uptimePercent = uptimeData ? (uptimeData.successful / uptimeData.total) * 100 : undefined;
 
                     return (
                         <AppCard
@@ -612,45 +598,46 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                             endpointUrl={app.endpointUrl}
                             localEndpointUrl={app.localEndpointUrl}
                             deploymentUrl={app.deploymentUrl}
+                            latencyHistory={app.id === 'chat-api' ? backendHealthHistory : modelHealthHistory.get(app.id) || []}
+                            errorCount={0}
+                            uptimePercent={uptimePercent}
+                            lastDeployAt={runs.get(wfName || '')?.updated_at}
                             defaultExpanded={false}
-                        >
-                            <ServiceDetails
-                                deploy={
-                                    <DeployPanel
-                                        appId={app.id}
-                                        githubToken={githubToken}
-                                        runs={runs}
-                                        triggering={triggering}
-                                        loading={loading}
-                                        onDeploy={triggerWorkflow}
-                                        onRefresh={refresh}
-                                    />
-                                }
-                                build={
-                                    <BuildPanel
-                                        appId={app.id}
-                                        buildBusy={buildBusy}
-                                        buildLogTail={buildLogTail}
-                                        onBuild={runBuild}
-                                    />
-                                }
-                                observe={
-                                    <ObservePanel
-                                        appId={app.id}
-                                        backendHealth={backendHealth.status}
-                                        backendProcess={backendProcess}
-                                        backendPid={backendPid}
-                                        backendBusy={backendBusy}
-                                        backendLogTail={backendLogTail}
-                                        backendNativeError={backendNativeError}
-                                        chatApiBaseUrl={chatApiBaseUrl}
-                                        onStart={startBackend}
-                                        onStop={stopBackend}
-                                        onFetchLogs={fetchBackendLogs}
-                                    />
-                                }
-                            />
-                        </AppCard>
+                            deployButton={
+                                <DeployPanel
+                                    appId={app.id}
+                                    githubToken={githubToken}
+                                    runs={runs}
+                                    triggering={triggering}
+                                    loading={loading}
+                                    onDeploy={triggerWorkflow}
+                                    onRefresh={refresh}
+                                />
+                            }
+                            buildActions={
+                                <BuildPanel
+                                    appId={app.id}
+                                    buildBusy={buildBusy}
+                                    buildLogTail={buildLogTail}
+                                    onBuild={runBuild}
+                                />
+                            }
+                            observeLogs={
+                                <ObservePanel
+                                    appId={app.id}
+                                    backendHealth={backendHealth.status}
+                                    backendProcess={backendProcess}
+                                    backendPid={backendPid}
+                                    backendBusy={backendBusy}
+                                    backendLogTail={backendLogTail}
+                                    backendNativeError={backendNativeError}
+                                    chatApiBaseUrl={chatApiBaseUrl}
+                                    onStart={startBackend}
+                                    onStop={stopBackend}
+                                    onFetchLogs={fetchBackendLogs}
+                                />
+                            }
+                        />
                     );
                 })}
             </div>

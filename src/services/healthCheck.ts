@@ -2,6 +2,7 @@ interface HealthStatus {
   status: 'ok' | 'down' | 'checking';
   latency?: number;
   lastCheck?: string;
+  history?: number[];
 }
 
 class HealthChecker {

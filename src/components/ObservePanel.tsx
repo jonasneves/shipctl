@@ -78,24 +78,24 @@ const ObservePanel: React.FC<ObservePanelProps> = ({
 
   if (isModelApp) {
     return (
-      <div className="space-y-2">
+      <>
         <HealthDisplay health={backendHealth} />
-        <div className="text-[10px] text-slate-500 px-3 py-2">
+        <div className="text-[10px] text-slate-500 px-3 py-2 mt-2">
           Model inference endpoint monitoring
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <>
       <HealthDisplay
         health={backendHealth}
         showPid={backendProcess === 'running' ? backendPid : null}
       />
 
       {/* Controls */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 mt-2">
         {backendProcess !== 'running' ? (
           <button
             onClick={onStart}
@@ -127,7 +127,7 @@ const ObservePanel: React.FC<ObservePanelProps> = ({
 
       {/* Logs */}
       {backendLogTail && (
-        <div className="space-y-1">
+        <div className="space-y-1 mt-2">
           <div className="flex items-center gap-1.5 px-2 py-1">
             <Terminal className="w-3 h-3 text-slate-500" />
             <span className="text-[10px] text-slate-500 font-medium">Logs</span>
@@ -140,19 +140,19 @@ const ObservePanel: React.FC<ObservePanelProps> = ({
 
       {/* Error */}
       {backendNativeError && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg mt-2">
           <AlertCircle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
           <span className="text-[10px] text-amber-300">{backendNativeError}</span>
         </div>
       )}
 
       {!isLocalChat && backendProcess !== 'running' && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 border border-blue-500/20 rounded-lg mt-2">
           <AlertCircle className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
           <span className="text-[10px] text-blue-300">Server control only available for localhost</span>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

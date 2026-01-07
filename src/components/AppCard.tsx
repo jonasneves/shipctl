@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronRight } from 'lucide-react';
+import Sparkline from './Sparkline';
+import HealthBadge from './HealthBadge';
 
 interface AppCardProps {
   id: string;
@@ -12,7 +14,13 @@ interface AppCardProps {
   endpointUrl?: string;
   localEndpointUrl?: string;
   deploymentUrl?: string;
-  children?: React.ReactNode;
+  latencyHistory?: number[];
+  errorCount?: number;
+  uptimePercent?: number;
+  lastDeployAt?: string;
+  deployButton?: React.ReactNode;
+  buildActions?: React.ReactNode;
+  observeLogs?: React.ReactNode;
   defaultExpanded?: boolean;
 }
 
@@ -20,6 +28,20 @@ const formatLatency = (latency?: number) => {
   if (!latency) return null;
   if (latency < 1000) return `${latency}ms`;
   return `${(latency / 1000).toFixed(1)}s`;
+};
+
+const formatRelativeTime = (isoString: string) => {
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  const diffMs = now - then;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays > 0) return `${diffDays}d`;
+  if (diffHours > 0) return `${diffHours}h`;
+  if (diffMins > 0) return `${diffMins}m`;
+  return 'now';
 };
 
 const STATUS_COLORS = {
@@ -76,14 +98,35 @@ const AppCard: React.FC<AppCardProps> = ({
   endpointUrl,
   localEndpointUrl,
   deploymentUrl,
-  children,
+  latencyHistory = [],
+  errorCount = 0,
+  uptimePercent,
+  lastDeployAt,
+  deployButton,
+  buildActions,
+  observeLogs,
   defaultExpanded = false,
 }) => {
-  const [expanded, setExpanded] = useState(defaultExpanded);
-
   const isDeploying = deploymentStatus === 'in_progress' || deploymentStatus === 'queued';
   const isHealthy = status === 'running' || status === 'ok';
   const isDown = status === 'stopped' || status === 'down';
+  const hasFailed = deploymentStatus === 'failure';
+
+  const shouldAutoExpand = () => {
+    if (isDeploying) return true;
+    if (isDown) return true;
+    if (hasFailed) return true;
+    if (errorCount > 0) return true;
+    return false;
+  };
+
+  const [expanded, setExpanded] = useState(defaultExpanded || shouldAutoExpand());
+
+  useEffect(() => {
+    if (shouldAutoExpand() && !expanded) {
+      setExpanded(true);
+    }
+  }, [status, deploymentStatus, errorCount, expanded]);
 
   const getAccentClass = () => {
     if (isDeploying) return ACCENT_COLORS.deploying;
@@ -102,10 +145,7 @@ const AppCard: React.FC<AppCardProps> = ({
       `}
     >
       {/* Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors group"
-      >
+      <div className="flex items-center gap-2 px-3 py-1.5">
         {/* Status Indicator */}
         <div className="relative flex-shrink-0">
           <StatusDot
@@ -115,10 +155,10 @@ const AppCard: React.FC<AppCardProps> = ({
           />
         </div>
 
-        {/* Name & Endpoint */}
+        {/* Name & Metrics */}
         <div className="flex flex-col items-start min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-100 group-hover:text-white transition-colors">
+            <span className="text-sm font-medium text-slate-100">
               {name}
             </span>
             {latency && isHealthy && (
@@ -127,81 +167,120 @@ const AppCard: React.FC<AppCardProps> = ({
               </span>
             )}
           </div>
-          <span className="text-[10px] text-slate-500 truncate max-w-full">
-            {publicEndpoint}
-          </span>
+          <div className="flex items-center gap-2 w-full">
+            <span className="text-[10px] text-slate-500 truncate">
+              {publicEndpoint}
+            </span>
+            {latencyHistory.length > 0 && isHealthy && (
+              <Sparkline data={latencyHistory} width={50} height={16} />
+            )}
+          </div>
         </div>
 
-
-
         {/* Expand Chevron */}
-        <ChevronRight
-          className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ${expanded ? 'rotate-90' : ''
-            }`}
-        />
-      </button>
-
-      {/* Expanded Content */}
-      <div className={`
-        overflow-hidden transition-all duration-200 ease-out
-        ${expanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}
-      `}>
-        {children && (
-          <div className="border-t border-slate-700/30">
-            {children}
-          </div>
-        )}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="p-1 hover:bg-slate-700/50 rounded transition-colors"
+        >
+          <ChevronRight
+            className={`w-3.5 h-3.5 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
+          />
+        </button>
       </div>
 
+      {/* Expanded Content */}
+      {expanded && (
+        <div className="border-t border-slate-700/30">
+          {/* Deploy Section */}
+          {deployButton && (
+            <div className="px-3 py-2 bg-slate-900/20">
+              <h4 className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Deploy</h4>
+              {deployButton}
+            </div>
+          )}
+
+          {/* Build Section */}
+          {buildActions && (
+            <div className="px-3 py-2 bg-slate-900/20 border-t border-slate-700/30">
+              <h4 className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Build</h4>
+              {buildActions}
+            </div>
+          )}
+
+          {/* Observe Section */}
+          {observeLogs && (
+            <div className="px-3 py-2 bg-slate-900/20 border-t border-slate-700/30">
+              <h4 className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Observe</h4>
+              {observeLogs}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Compact Footer Status */}
-      <div className="border-t border-slate-700/30 px-3 py-2 bg-slate-900/40">
-        <div className="flex items-center gap-3 text-[10px]">
-          {/* Local Status */}
-          {localEndpointUrl ? (
+      <div className="border-t border-slate-700/30 px-3 py-1.5 bg-slate-900/40">
+        <div className="flex items-center justify-between gap-2 text-[10px]">
+          <div className="flex items-center gap-2">
+            {/* Local Status */}
+            {localEndpointUrl ? (
+              <a
+                href={localEndpointUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
+                title={localEndpointUrl}
+              >
+                <StatusDot status={localStatus || 'down'} size="sm" />
+                <span className="text-slate-500 hover:text-slate-300 transition-colors">Local</span>
+              </a>
+            ) : (
+              <div className="flex items-center gap-1.5 opacity-50 cursor-not-allowed">
+                <StatusDot status={localStatus || 'down'} size="sm" />
+                <span className="text-slate-500">Local</span>
+              </div>
+            )}
+
+            <span className="text-slate-700">•</span>
+
+            {/* Deploy Status */}
             <a
-              href={localEndpointUrl}
+              href={deploymentUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
-              title={localEndpointUrl}
+              title="View deployment"
             >
-              <StatusDot status={localStatus || 'down'} size="sm" />
-              <span className="text-slate-500 hover:text-slate-300 transition-colors">Local</span>
+              <StatusDot
+                status={
+                  deploymentStatus === 'success' ? 'ok' :
+                    deploymentStatus === 'failure' ? 'down' :
+                      deploymentStatus === 'in_progress' ? 'deploying' :
+                        deploymentStatus === 'queued' ? 'deploying' :
+                          'unknown'
+                }
+                size="sm"
+                pulse={isDeploying}
+              />
+              <span className="text-slate-500 hover:text-slate-300 transition-colors">
+                Pipeline
+              </span>
             </a>
-          ) : (
-            <div className="flex items-center gap-1.5 opacity-50 cursor-not-allowed">
-              <StatusDot status={localStatus || 'down'} size="sm" />
-              <span className="text-slate-500">Local</span>
-            </div>
-          )}
+          </div>
 
-          <span className="text-slate-700">•</span>
-
-          {/* Deploy Status */}
-          <a
-            href={deploymentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
-            title="View deployment"
-          >
-            <StatusDot
-              status={
-                deploymentStatus === 'success' ? 'ok' :
-                  deploymentStatus === 'failure' ? 'down' :
-                    deploymentStatus === 'in_progress' ? 'deploying' :
-                      deploymentStatus === 'queued' ? 'deploying' :
-                        'unknown'
-              }
-              size="sm"
-              pulse={isDeploying}
-            />
-            <span className="text-slate-500 hover:text-slate-300 transition-colors">
-              Pipeline
-            </span>
-          </a>
+          {/* Health Badges */}
+          <div className="flex items-center gap-1.5">
+            {uptimePercent !== undefined && uptimePercent > 0 && (
+              <HealthBadge variant="uptime" value={`${uptimePercent.toFixed(0)}%`} />
+            )}
+            {errorCount > 0 && (
+              <HealthBadge variant="error" value={errorCount} />
+            )}
+            {lastDeployAt && (
+              <HealthBadge variant="deploy" value={formatRelativeTime(lastDeployAt)} />
+            )}
+          </div>
         </div>
       </div>
     </div>
