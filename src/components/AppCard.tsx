@@ -94,8 +94,7 @@ const AppCard: React.FC<AppCardProps> = ({
         border-l-2 ${getAccentClass()}
         shadow-sm shadow-slate-950/40
         transition-all duration-200 ease-out
-        hover:bg-slate-800/60 hover:border-slate-600/40 hover:shadow-md hover:shadow-slate-950/50
-        ${isDeploying ? 'ring-1 ring-blue-500/20' : ''}
+        hover:bg-slate-800/60
       `}
     >
       {/* Header */}
@@ -170,28 +169,6 @@ const AppCard: React.FC<AppCardProps> = ({
             <div className="flex items-center gap-1.5 opacity-50 cursor-not-allowed">
               <StatusDot status={localStatus || 'down'} size="sm" />
               <span className="text-slate-500">Local</span>
-            </div>
-          )}
-
-          <span className="text-slate-700">•</span>
-
-          {/* Cloud Status */}
-          {endpointUrl ? (
-            <a
-              href={endpointUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
-              title={endpointUrl}
-            >
-              <StatusDot status={status} size="sm" />
-              <span className="text-slate-500 hover:text-slate-300 transition-colors">Cloud</span>
-            </a>
-          ) : (
-            <div className="flex items-center gap-1.5" title={publicEndpoint}>
-              <StatusDot status={status} size="sm" />
-              <span className="text-slate-500">Cloud</span>
             </div>
           )}
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, Activity, Settings } from 'lucide-react';
+import { RefreshCw, Settings } from 'lucide-react';
 
 interface StatusRingProps {
     online: number;
@@ -50,7 +50,7 @@ const StatusRing: React.FC<StatusRingProps> = ({
     };
 
     return (
-        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-800/60 to-slate-800/40 backdrop-blur-sm rounded-2xl border border-slate-700/30 shadow-lg shadow-black/10">
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/30 shadow-lg shadow-black/10">
             {/* Left: Ring + Stats */}
             <div className="flex items-center gap-4">
                 {/* Health Ring */}
@@ -90,12 +90,9 @@ const StatusRing: React.FC<StatusRingProps> = ({
 
                 {/* Status Text */}
                 <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5">
-                        <Activity className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-[11px] font-medium text-slate-300">
-                            System Health
-                        </span>
-                    </div>
+                    <span className="text-[11px] font-medium text-slate-300">
+                        System Health
+                    </span>
                     <span className="text-[13px] font-semibold text-white">
                         {getStatusText()}
                     </span>

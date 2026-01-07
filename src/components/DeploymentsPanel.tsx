@@ -535,9 +535,9 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         transition-all duration-200
                         ${triggering
                             ? 'bg-blue-500/20 text-blue-400 cursor-wait'
-                            : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 active:scale-[0.98]'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white active:scale-[0.98]'
                         }
-                        disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none
+                        disabled:opacity-50 disabled:cursor-not-allowed
                     `}
                 >
                     <Rocket className={`w-4 h-4 ${triggering ? 'animate-bounce' : ''}`} />
