@@ -35,7 +35,7 @@ const StatusDot: React.FC<{
   size?: 'sm' | 'md';
   pulse?: boolean;
 }> = ({ status, size = 'sm', pulse }) => {
-  const sizeClasses = size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5';
+  const sizeClasses = size === 'sm' ? 'w-2 h-2' : 'w-3 h-3';
 
   const colorClasses = {
     ok: 'bg-emerald-400',
@@ -52,7 +52,7 @@ const StatusDot: React.FC<{
 
   return (
     <span className="relative flex">
-      <span className={`${sizeClasses} rounded-full ${colorClasses}`} />
+      <span className={`${sizeClasses} rounded-full ${colorClasses} ring-1 ring-slate-950`} />
       {shouldPulse && (
         <span className={`absolute inset-0 ${sizeClasses} rounded-full ${colorClasses} animate-ping opacity-75`} />
       )}
@@ -92,8 +92,9 @@ const AppCard: React.FC<AppCardProps> = ({
       className={`
         rounded-xl bg-slate-800/40 border border-slate-700/30 overflow-hidden
         border-l-2 ${getAccentClass()}
+        shadow-sm shadow-slate-950/40
         transition-all duration-200 ease-out
-        hover:bg-slate-800/60 hover:border-slate-600/40
+        hover:bg-slate-800/60 hover:border-slate-600/40 hover:shadow-md hover:shadow-slate-950/50
         ${isDeploying ? 'ring-1 ring-blue-500/20' : ''}
       `}
     >

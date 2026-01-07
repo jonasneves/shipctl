@@ -53,17 +53,8 @@ const ServerPanel: React.FC = () => {
 
   return (
     <div className="min-h-screen font-sans bg-slate-950 text-slate-100 relative overflow-hidden">
-      {/* Subtle gradient background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-purple-500/5" />
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: 'radial-gradient(rgba(148, 163, 184, 0.4) 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
-        />
-      </div>
+      {/* Clean gradient background */}
+      <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-slate-900/50 to-transparent" />
 
 
 

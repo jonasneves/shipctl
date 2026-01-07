@@ -44,9 +44,8 @@ const StatusRing: React.FC<StatusRingProps> = ({
     // Get status text
     const getStatusText = () => {
         if (loading) return 'Checking...';
-        if (deploying > 0) return `${deploying} deploying`;
         if (down > 0) return `${down} down`;
-        if (online === total) return 'All systems go';
+        if (online === total) return 'All systems operational';
         return `${online}/${total} online`;
     };
 
