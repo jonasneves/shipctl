@@ -15,6 +15,42 @@ interface ObservePanelProps {
   onFetchLogs: () => void;
 }
 
+const HEALTH_COLORS = {
+  ok: { dot: 'bg-emerald-400', text: 'text-emerald-400' },
+  down: { dot: 'bg-red-400', text: 'text-red-400' },
+  checking: { dot: 'bg-blue-400', text: 'text-blue-400' },
+} as const;
+
+const HEALTH_LABELS = {
+  ok: 'Healthy',
+  down: 'Down',
+  checking: 'Checking',
+} as const;
+
+const HealthDisplay: React.FC<{ health: 'ok' | 'down' | 'checking'; showPid?: number | null }> = ({ health, showPid }) => {
+  const colors = HEALTH_COLORS[health];
+  const label = HEALTH_LABELS[health];
+  const shouldPulse = health === 'checking';
+
+  return (
+    <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg">
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${colors.dot} ${shouldPulse ? 'animate-pulse' : ''}`} />
+        <div className="flex flex-col">
+          <span className="text-[10px] text-slate-500">Health</span>
+          <span className={`text-xs font-medium ${colors.text}`}>{label}</span>
+        </div>
+      </div>
+      {showPid && (
+        <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+          <Activity className="w-3 h-3" />
+          <span>PID {showPid}</span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ObservePanel: React.FC<ObservePanelProps> = ({
   appId,
   backendHealth,
@@ -40,29 +76,10 @@ const ObservePanel: React.FC<ObservePanelProps> = ({
 
   const isLocalChat = chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1');
 
-  // For model apps, show simplified health-only view
   if (isModelApp) {
     return (
       <div className="space-y-2">
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              backendHealth === 'ok' ? 'bg-emerald-400'
-              : backendHealth === 'down' ? 'bg-red-400'
-              : 'bg-blue-400 animate-pulse'
-            }`} />
-            <div className="flex flex-col">
-              <span className="text-[10px] text-slate-500">Health</span>
-              <span className={`text-xs font-medium ${
-                backendHealth === 'ok' ? 'text-emerald-400'
-                : backendHealth === 'down' ? 'text-red-400'
-                : 'text-blue-400'
-              }`}>
-                {backendHealth === 'ok' ? 'Healthy' : backendHealth === 'down' ? 'Down' : 'Checking'}
-              </span>
-            </div>
-          </div>
-        </div>
+        <HealthDisplay health={backendHealth} />
         <div className="text-[10px] text-slate-500 px-3 py-2">
           Model inference endpoint monitoring
         </div>
@@ -70,35 +87,12 @@ const ObservePanel: React.FC<ObservePanelProps> = ({
     );
   }
 
-  // Chat API gets full controls
   return (
     <div className="space-y-2">
-      {/* Health Status */}
-      <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg">
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${
-            backendHealth === 'ok' ? 'bg-emerald-400'
-            : backendHealth === 'down' ? 'bg-red-400'
-            : 'bg-blue-400 animate-pulse'
-          }`} />
-          <div className="flex flex-col">
-            <span className="text-[10px] text-slate-500">Health</span>
-            <span className={`text-xs font-medium ${
-              backendHealth === 'ok' ? 'text-emerald-400'
-              : backendHealth === 'down' ? 'text-red-400'
-              : 'text-blue-400'
-            }`}>
-              {backendHealth === 'ok' ? 'Healthy' : backendHealth === 'down' ? 'Down' : 'Checking'}
-            </span>
-          </div>
-        </div>
-        {backendProcess === 'running' && backendPid && (
-          <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
-            <Activity className="w-3 h-3" />
-            <span>PID {backendPid}</span>
-          </div>
-        )}
-      </div>
+      <HealthDisplay
+        health={backendHealth}
+        showPid={backendProcess === 'running' ? backendPid : null}
+      />
 
       {/* Controls */}
       <div className="flex gap-2">

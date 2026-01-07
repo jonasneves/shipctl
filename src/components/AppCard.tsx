@@ -22,6 +22,24 @@ const formatLatency = (latency?: number) => {
   return `${(latency / 1000).toFixed(1)}s`;
 };
 
+const STATUS_COLORS = {
+  ok: 'bg-emerald-400',
+  running: 'bg-emerald-400',
+  down: 'bg-red-400',
+  stopped: 'bg-red-400',
+  checking: 'bg-amber-400',
+  building: 'bg-amber-400',
+  deploying: 'bg-blue-400',
+  unknown: 'bg-slate-600',
+} as const;
+
+const ACCENT_COLORS = {
+  deploying: 'border-l-blue-500',
+  healthy: 'border-l-emerald-500',
+  down: 'border-l-red-400',
+  checking: 'border-l-amber-400',
+} as const;
+
 const getLatencyColor = (latency?: number) => {
   if (!latency) return 'text-slate-500';
   if (latency < 500) return 'text-emerald-400';
@@ -29,26 +47,14 @@ const getLatencyColor = (latency?: number) => {
   return 'text-red-400';
 };
 
-// Status dot with pulse for deploying
 const StatusDot: React.FC<{
   status: 'ok' | 'down' | 'checking' | 'deploying' | 'running' | 'stopped' | 'building' | 'unknown';
   size?: 'sm' | 'md';
   pulse?: boolean;
 }> = ({ status, size = 'sm', pulse }) => {
   const sizeClasses = size === 'sm' ? 'w-2 h-2' : 'w-3 h-3';
-
-  const colorClasses = {
-    ok: 'bg-emerald-400',
-    running: 'bg-emerald-400',
-    down: 'bg-red-400',
-    stopped: 'bg-red-400',
-    checking: 'bg-amber-400',
-    building: 'bg-amber-400',
-    deploying: 'bg-blue-400',
-    unknown: 'bg-slate-600',
-  }[status] || 'bg-slate-600';
-
-  const shouldPulse = pulse || status === 'checking' || status === 'deploying' || status === 'building';
+  const colorClasses = STATUS_COLORS[status] || STATUS_COLORS.unknown;
+  const shouldPulse = pulse || status === 'deploying' || status === 'building';
 
   return (
     <span className="relative flex">
@@ -79,12 +85,11 @@ const AppCard: React.FC<AppCardProps> = ({
   const isHealthy = status === 'running' || status === 'ok';
   const isDown = status === 'stopped' || status === 'down';
 
-  // Get accent color based on status
   const getAccentClass = () => {
-    if (isDeploying) return 'border-l-blue-500';
-    if (isHealthy) return 'border-l-emerald-500';
-    if (isDown) return 'border-l-red-400';
-    return 'border-l-amber-400';
+    if (isDeploying) return ACCENT_COLORS.deploying;
+    if (isHealthy) return ACCENT_COLORS.healthy;
+    if (isDown) return ACCENT_COLORS.down;
+    return ACCENT_COLORS.checking;
   };
 
   return (
@@ -92,7 +97,7 @@ const AppCard: React.FC<AppCardProps> = ({
       className={`
         rounded-xl bg-slate-800/40 border border-slate-700/30 overflow-hidden
         border-l-2 ${getAccentClass()}
-        shadow-sm shadow-slate-950/40
+        shadow
         transition-all duration-200 ease-out
         hover:bg-slate-800/60
       `}

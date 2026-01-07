@@ -50,7 +50,7 @@ const StatusRing: React.FC<StatusRingProps> = ({
     };
 
     return (
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/30 shadow-lg shadow-black/10">
+        <div className="flex items-center justify-between px-4 py-3 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/30 shadow">
             {/* Left: Ring + Stats */}
             <div className="flex items-center gap-4">
                 {/* Health Ring */}
@@ -110,14 +110,14 @@ const StatusRing: React.FC<StatusRingProps> = ({
                         </span>
                     )}
                     {deploying > 0 && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 animate-pulse">
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                             <span className="text-[10px] font-medium text-blue-400">{deploying}</span>
                         </span>
                     )}
                     {checking > 0 && (
                         <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                             <span className="text-[10px] font-medium text-amber-400">{checking}</span>
                         </span>
                     )}

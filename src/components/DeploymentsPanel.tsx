@@ -540,7 +540,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         disabled:opacity-50 disabled:cursor-not-allowed
                     `}
                 >
-                    <Rocket className={`w-4 h-4 ${triggering ? 'animate-bounce' : ''}`} />
+                    <Rocket className="w-4 h-4" />
                     <span>{triggering ? 'Deploying...' : 'Deploy All'}</span>
                 </button>
 
