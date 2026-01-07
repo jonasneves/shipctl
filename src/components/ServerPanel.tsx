@@ -52,18 +52,13 @@ const ServerPanel: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen font-sans bg-slate-950 text-slate-100 relative overflow-hidden">
-      {/* Clean gradient background */}
-      <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-slate-900/50 to-transparent" />
-
-
-
+    <div className="min-h-screen font-sans bg-slate-950 text-slate-100">
       {showConfig ? (
         <div className="relative z-10 p-4 space-y-4">
           {/* Settings Header */}
           <div className="flex items-center justify-between pb-2 border-b border-slate-700/30">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-400" />
+              <Sparkles className="w-4 h-4 text-slate-400" />
               <h2 className="text-sm font-semibold text-white">Configuration</h2>
             </div>
             <button
@@ -76,9 +71,9 @@ const ServerPanel: React.FC = () => {
           </div>
 
           {/* GitHub Token */}
-          <div className="p-3 rounded-xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/30">
+          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
             <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-purple-400" />
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
               GitHub Token
             </label>
             <div className="relative">
@@ -120,9 +115,9 @@ const ServerPanel: React.FC = () => {
           </div>
 
           {/* GitHub Repository */}
-          <div className="p-3 rounded-xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/30">
+          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
             <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-purple-400" />
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
               GitHub Repository
             </label>
             <div className="space-y-2">
@@ -147,9 +142,9 @@ const ServerPanel: React.FC = () => {
           </div>
 
           {/* Repository Path */}
-          <div className="p-3 rounded-xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/30">
+          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
             <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-blue-400" />
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
               Repository Path
             </label>
             <input
@@ -165,9 +160,9 @@ const ServerPanel: React.FC = () => {
           </div>
 
           {/* Python Path */}
-          <div className="p-3 rounded-xl bg-slate-800/40 backdrop-blur-sm border border-slate-700/30">
+          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
             <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-emerald-400" />
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
               Python Path
             </label>
             <input
@@ -182,53 +177,53 @@ const ServerPanel: React.FC = () => {
             </p>
           </div>
 
-          {/* Advanced Settings */}
-          <details className="group">
-            <summary className="flex items-center gap-2 text-xs font-medium text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-              <span className="group-open:rotate-90 transition-transform duration-200">▶</span>
-              Advanced Settings
-            </summary>
-            <div className="mt-3 p-3 space-y-3 rounded-xl bg-slate-800/30 border border-slate-700/20">
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1.5">Chat API URL</label>
-                <input
-                  type="text"
-                  value={config.chatApiBaseUrl}
-                  onChange={(e) => setConfig({ ...config, profile: 'custom', chatApiBaseUrl: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                  placeholder="http://localhost:8080"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1.5">Models Domain</label>
-                <div className="flex gap-2">
+          {/* Chat API URL */}
+          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
+              Chat API URL
+            </label>
+            <input
+              type="text"
+              value={config.chatApiBaseUrl}
+              onChange={(e) => setConfig({ ...config, profile: 'custom', chatApiBaseUrl: e.target.value })}
+              className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              placeholder="http://localhost:8080"
+            />
+          </div>
+
+          {/* Models Domain */}
+          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
+            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
+              Models Domain
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={config.modelsBaseDomain}
+                onChange={(e) => setConfig({ ...config, profile: 'custom', modelsBaseDomain: e.target.value.trim() })}
+                className="flex-1 px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                placeholder="neevs.io (or empty for localhost)"
+              />
+              {config.modelsBaseDomain && (
+                <label className="flex items-center gap-1.5 px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-xs text-slate-300 cursor-pointer hover:border-slate-500/60 transition-colors">
                   <input
-                    type="text"
-                    value={config.modelsBaseDomain}
-                    onChange={(e) => setConfig({ ...config, profile: 'custom', modelsBaseDomain: e.target.value.trim() })}
-                    className="flex-1 px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder="neevs.io (or empty for localhost)"
+                    type="checkbox"
+                    checked={config.modelsUseHttps}
+                    onChange={(e) => setConfig({ ...config, profile: 'custom', modelsUseHttps: e.target.checked })}
+                    className="w-3.5 h-3.5 rounded bg-slate-800 border-slate-600 accent-blue-500"
                   />
-                  {config.modelsBaseDomain && (
-                    <label className="flex items-center gap-1.5 px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-[11px] text-slate-300 cursor-pointer hover:border-slate-500/60 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={config.modelsUseHttps}
-                        onChange={(e) => setConfig({ ...config, profile: 'custom', modelsUseHttps: e.target.checked })}
-                        className="w-3.5 h-3.5 rounded bg-slate-800 border-slate-600 accent-blue-500"
-                      />
-                      HTTPS
-                    </label>
-                  )}
-                </div>
-              </div>
+                  HTTPS
+                </label>
+              )}
             </div>
-          </details>
+          </div>
 
           {/* Save Button */}
           <button
             onClick={saveConfig}
-            className="w-full px-4 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl text-sm font-medium text-white shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all active:scale-[0.98]"
+            className="w-full px-4 py-2.5 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium text-white transition-colors"
           >
             Save Configuration
           </button>

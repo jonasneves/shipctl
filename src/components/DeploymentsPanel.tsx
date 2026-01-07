@@ -532,10 +532,10 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     disabled={!!triggering || !githubToken}
                     className={`
                         flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
-                        transition-all duration-200
+                        transition-colors
                         ${triggering
                             ? 'bg-blue-500/20 text-blue-400 cursor-wait'
-                            : 'bg-blue-500 hover:bg-blue-600 text-white active:scale-[0.98]'
+                            : 'bg-blue-500 hover:bg-blue-600 text-white'
                         }
                         disabled:opacity-50 disabled:cursor-not-allowed
                     `}
@@ -550,8 +550,8 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     disabled={!!triggering || !githubToken}
                     className={`
                         flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
-                        transition-all duration-200
-                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 hover:border-slate-600
+                        transition-colors
+                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/30
                         disabled:opacity-50 disabled:cursor-not-allowed
                     `}
                 >
@@ -566,8 +566,8 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     rel="noopener noreferrer"
                     className={`
                         flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-semibold
-                        transition-all duration-200
-                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/50 hover:border-slate-600
+                        transition-colors
+                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/30
                         ${(!githubRepoOwner || !githubRepoName) ? 'opacity-50 pointer-events-none' : ''}
                     `}
                     title="Open GitHub Actions"
@@ -584,7 +584,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filter apps..."
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-800/40 border border-slate-700/50 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:bg-slate-800/60 focus:border-blue-500/50 transition-all"
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-800/40 border border-slate-700/30 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:bg-slate-800/60 focus:border-blue-500/60 transition-all"
                 />
             </div>
 
@@ -672,11 +672,6 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     </div>
                 )
             }
-
-            {/* Keyboard shortcuts hint */}
-            <div className="text-center text-[9px] text-slate-600 pt-2">
-                Press <kbd className="px-1 py-0.5 bg-slate-800 rounded text-slate-500">R</kbd> to refresh
-            </div>
         </div >
     );
 };

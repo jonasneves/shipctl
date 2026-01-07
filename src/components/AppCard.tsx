@@ -58,7 +58,7 @@ const StatusDot: React.FC<{
 
   return (
     <span className="relative flex">
-      <span className={`${sizeClasses} rounded-full ${colorClasses} ring-1 ring-slate-950`} />
+      <span className={`${sizeClasses} rounded-full ${colorClasses}`} />
       {shouldPulse && (
         <span className={`absolute inset-0 ${sizeClasses} rounded-full ${colorClasses} animate-ping opacity-75`} />
       )}
@@ -97,8 +97,7 @@ const AppCard: React.FC<AppCardProps> = ({
       className={`
         rounded-xl bg-slate-800/40 border border-slate-700/30 overflow-hidden
         border-l-2 ${getAccentClass()}
-        shadow
-        transition-all duration-200 ease-out
+        transition-colors
         hover:bg-slate-800/60
       `}
     >
