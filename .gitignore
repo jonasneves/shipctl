@@ -19,3 +19,6 @@ dist/
 # Native host install artifacts
 native-host/*.bak
 native-host/serverless_llm_native_host.sh
+
+# Native host runtime (logs)
+.native-host/

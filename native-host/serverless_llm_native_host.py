@@ -173,16 +173,38 @@ def _augment_path_for_node(env: Dict[str, str]) -> Dict[str, str]:
     return env
 
 
+def _find_extension_dir() -> Path:
+    """Find the extension directory (where this native host script lives)"""
+    here = Path(__file__).resolve()
+    extension_dir = here.parent.parent
+
+    # Validate it's the extension directory (has Makefile and package.json)
+    if (extension_dir / "Makefile").exists() and (extension_dir / "package.json").exists():
+        return extension_dir
+
+    raise RuntimeError(f"Extension directory not found at {extension_dir}")
+
+
 def _run_make_target(repo_root: Path, target: str, log_path: Path) -> dict:
     allowed_targets = {"build-playground", "build-extension"}
     if target not in allowed_targets:
         return {"ok": False, "error": f"Unsupported make target: {target}"}
+
+    # Extension builds run in extension directory, not serverless-llm repo
+    if target == "build-extension":
+        try:
+            working_dir = _find_extension_dir()
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+    else:
+        working_dir = repo_root
 
     command = ["make", target]
 
     log_path.parent.mkdir(exist_ok=True)
     with open(log_path, "a", buffering=1) as log_f:
         log_f.write(f"\n--- make {target} {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+        log_f.write(f"Working directory: {working_dir}\n")
         log_f.flush()
 
         env = _augment_path_for_node(os.environ.copy())
@@ -202,7 +224,7 @@ def _run_make_target(repo_root: Path, target: str, log_path: Path) -> dict:
         try:
             proc = subprocess.run(
                 command,
-                cwd=str(repo_root),
+                cwd=str(working_dir),
                 stdout=log_f,
                 stderr=log_f,
                 env=env,
@@ -340,7 +362,20 @@ def main() -> None:
             _write_message({"ok": False, "error": "Missing make target"})
             return
         target = target.strip()
-        make_log_path = repo_root / ".native-host" / f"make-{target}.log"
+
+        # Extension builds log to extension directory
+        if target == "build-extension":
+            try:
+                extension_dir = _find_extension_dir()
+                log_dir = extension_dir / ".native-host"
+                log_dir.mkdir(exist_ok=True)
+                make_log_path = log_dir / f"make-{target}.log"
+            except Exception as e:
+                _write_message({"ok": False, "error": str(e)})
+                return
+        else:
+            make_log_path = repo_root / ".native-host" / f"make-{target}.log"
+
         _write_message(_run_make_target(repo_root, target, make_log_path))
         return
 
