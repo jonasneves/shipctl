@@ -135,105 +135,103 @@ const AppCard: React.FC<AppCardProps> = ({
         hover:bg-slate-800/60
       `}
     >
-      {/* Compact Header - Single Line */}
+      {/* Two-Column Layout */}
       <div
-        className="flex items-center gap-2 px-3 py-1 cursor-pointer"
+        className="flex items-center gap-3 px-3 py-2 cursor-pointer"
         onClick={handleRowClick}
       >
-        {/* Status Dot */}
-        <div className="relative flex-shrink-0">
-          <StatusDot
-            status={isDeploying ? 'building' : status}
-            size="sm"
-            pulse={isDeploying}
-          />
-        </div>
-
-        {/* Name */}
-        <span className="text-xs font-medium text-slate-100 truncate">
-          {name}
-        </span>
-
-        {/* Error Badge */}
-        {errorCount > 0 && (
-          <HealthBadge variant="error" value={errorCount} />
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1 min-w-[8px]" />
-
-        {/* Latency */}
-        {isHealthy && (
-          <span className={`text-[10px] font-mono tabular-nums ${getLatencyColor(latency)}`}>
-            {formatLatency(latency) || '--ms'}
-          </span>
-        )}
-
-        {/* Sparkline */}
-        {latencyHistory.length > 0 && isHealthy && (
-          <Sparkline data={latencyHistory} width={40} height={14} />
-        )}
-
-        {/* Quick Actions */}
-        <div className="flex items-center gap-1 ml-2">
-          {/* Open Endpoint */}
-          {endpointUrl && (
-            <a
-              href={endpointUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
-              title="Open endpoint"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
-
-          {/* Deploy Now */}
-          {onDeploy && (
-            <button
-              onClick={(e) => handleQuickAction(e, onDeploy)}
-              disabled={deployTriggering}
-              className="p-1 text-slate-500 hover:text-emerald-400 hover:bg-slate-700/50 rounded transition-colors disabled:opacity-50"
-              title="Deploy now"
-            >
-              <Rocket className={`w-3.5 h-3.5 ${deployTriggering ? 'animate-spin' : ''}`} />
-            </button>
-          )}
-
-          {/* View Logs */}
-          {observeLogs && (
-            <button
-              onClick={(e) => handleQuickAction(e, () => setExpanded(true))}
-              className="p-1 text-slate-500 hover:text-blue-400 hover:bg-slate-700/50 rounded transition-colors"
-              title="View logs"
-            >
-              <Terminal className="w-3.5 h-3.5" />
-            </button>
-          )}
-
-          {/* Expand Toggle */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded(!expanded);
-            }}
-            className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
-            title={expanded ? "Collapse" : "Expand"}
-          >
-            <ChevronRight
-              className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`}
+        {/* Left: Status + Name + Endpoint (Stacked) */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="relative flex-shrink-0">
+            <StatusDot
+              status={isDeploying ? 'building' : status}
+              size="sm"
+              pulse={isDeploying}
             />
-          </button>
+          </div>
+          <div className="flex flex-col min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-100 truncate">
+                {name}
+              </span>
+              {errorCount > 0 && (
+                <HealthBadge variant="error" value={errorCount} />
+              )}
+            </div>
+            <span className="text-[10px] text-slate-500 truncate">
+              {publicEndpoint}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Endpoint URL - Second Line */}
-      <div className="px-3 pb-1">
-        <span className="text-[10px] text-slate-500 truncate block">
-          {publicEndpoint}
-        </span>
+        {/* Right: Metrics + Actions (Single Row, Centered) */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Latency */}
+          {isHealthy && (
+            <span className={`text-xs font-mono tabular-nums ${getLatencyColor(latency)}`}>
+              {formatLatency(latency) || '--ms'}
+            </span>
+          )}
+
+          {/* Sparkline */}
+          {latencyHistory.length > 0 && isHealthy && (
+            <Sparkline data={latencyHistory} width={50} height={18} />
+          )}
+
+          {/* Quick Actions */}
+          <div className="flex items-center gap-0.5">
+            {/* Open Endpoint */}
+            {endpointUrl && (
+              <a
+                href={endpointUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
+                title="Open endpoint"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            )}
+
+            {/* Deploy Now */}
+            {onDeploy && (
+              <button
+                onClick={(e) => handleQuickAction(e, onDeploy)}
+                disabled={deployTriggering}
+                className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-slate-700/50 rounded transition-colors disabled:opacity-50"
+                title="Deploy now"
+              >
+                <Rocket className={`w-4 h-4 ${deployTriggering ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+
+            {/* View Logs */}
+            {observeLogs && (
+              <button
+                onClick={(e) => handleQuickAction(e, () => setExpanded(true))}
+                className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-slate-700/50 rounded transition-colors"
+                title="View logs"
+              >
+                <Terminal className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Expand Toggle */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(!expanded);
+              }}
+              className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
+              title={expanded ? "Collapse" : "Expand"}
+            >
+              <ChevronRight
+                className={`w-4 h-4 transition-transform ${expanded ? 'rotate-90' : ''}`}
+              />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Expanded Content */}
