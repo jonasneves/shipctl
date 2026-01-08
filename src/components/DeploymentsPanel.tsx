@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AppCard from './AppCard';
-import CollapsibleSection from './CollapsibleSection';
 import WorkflowCard from './WorkflowCard';
 import BuildPanel from './BuildPanel';
 import ObservePanel from './ObservePanel';
@@ -55,6 +54,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     const [modelHealthHistory, setModelHealthHistory] = useState<Map<string, number[]>>(new Map());
     const [backendHealthHistory, setBackendHealthHistory] = useState<number[]>([]);
     const [uptimeStats, setUptimeStats] = useState<Map<string, { successful: number; total: number }>>(new Map());
+    const [activeTab, setActiveTab] = useState<'services' | 'workflows'>('services');
 
     const refreshInFlight = useRef(false);
 
@@ -620,12 +620,49 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 />
             </div>
 
-            {/* Services Section */}
-            <CollapsibleSection
-                title="Services"
-                subtitle={`${serviceStats.online} running${serviceStats.down > 0 ? `, ${serviceStats.down} down` : ''}`}
-                defaultExpanded={true}
-            >
+            {/* Tabs */}
+            <div className="flex border-b border-slate-700/30">
+                <button
+                    onClick={() => setActiveTab('services')}
+                    className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors relative ${
+                        activeTab === 'services'
+                            ? 'text-white'
+                            : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                >
+                    Services
+                    <span className="ml-2 text-xs text-slate-500">
+                        {serviceStats.online} running{serviceStats.down > 0 ? `, ${serviceStats.down} down` : ''}
+                    </span>
+                    {activeTab === 'services' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+                    )}
+                </button>
+                {standaloneWorkflows.length > 0 && (
+                    <button
+                        onClick={() => setActiveTab('workflows')}
+                        className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors relative ${
+                            activeTab === 'workflows'
+                                ? 'text-white'
+                                : 'text-slate-400 hover:text-slate-300'
+                        }`}
+                    >
+                        Workflows
+                        <span className="ml-2 text-xs text-slate-500">
+                            {workflowStats.active > 0
+                                ? `${workflowStats.active} active, ${workflowStats.recent} recent`
+                                : `${workflowStats.recent} recent`}
+                        </span>
+                        {activeTab === 'workflows' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+                        )}
+                    </button>
+                )}
+            </div>
+
+            {/* Services Tab Content */}
+            {activeTab === 'services' && (
+                <div className="space-y-2">
                 {filteredAndSortedApps.map(app => {
                     // Find workflow and run info for this app
                     const serviceConfig = SERVICES.find(s => s.key === app.id);
@@ -700,19 +737,12 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         />
                     );
                 })}
-            </CollapsibleSection>
+                </div>
+            )}
 
-            {/* Workflows Section */}
-            {standaloneWorkflows.length > 0 && (
-                <CollapsibleSection
-                    title="Workflows"
-                    subtitle={
-                        workflowStats.active > 0
-                            ? `${workflowStats.active} active, ${workflowStats.recent} recent`
-                            : `${workflowStats.recent} recent`
-                    }
-                    defaultExpanded={workflowStats.active > 0}
-                >
+            {/* Workflows Tab Content */}
+            {activeTab === 'workflows' && standaloneWorkflows.length > 0 && (
+                <div className="space-y-2">
                     {standaloneWorkflows.map(wf => (
                         <WorkflowCard
                             key={wf.name}
@@ -726,7 +756,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                             disabled={!githubToken}
                         />
                     ))}
-                </CollapsibleSection>
+                </div>
             )}
 
             {/* Build Error (global) */}
