@@ -32,36 +32,32 @@ const StatusRing: React.FC<StatusRingProps> = ({
         return `${online}/${total} online`;
     };
 
+    const getStatusBadges = () => {
+        const badges = [];
+        if (online > 0) badges.push(`${online} online`);
+        if (checking > 0) badges.push(`${checking} checking`);
+        if (deploying > 0) badges.push(`${deploying} deploying`);
+        if (down > 0) badges.push(`${down} down`);
+        return badges.join(' • ');
+    };
+
     return (
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-800/50 rounded-xl border border-slate-700/30">
-            {/* Left: Stats */}
-            <div className="flex items-center gap-4">
-                <div className="flex flex-col">
-                    <span className="text-[11px] text-slate-400">
-                        System Health
-                    </span>
-                    <span className="text-sm font-medium text-white">
-                        {getStatusText()}
-                    </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                    {online > 0 && (
-                        <span className="text-emerald-400">{online}</span>
-                    )}
-                    {checking > 0 && (
-                        <span className="text-amber-400">{checking}</span>
-                    )}
-                    {deploying > 0 && (
-                        <span className="text-blue-400">{deploying}</span>
-                    )}
-                    {down > 0 && (
-                        <span className="text-red-400">{down}</span>
-                    )}
-                </div>
+        <div className="flex items-center justify-between px-3 py-2.5 bg-slate-800/50 rounded-lg border border-slate-700/30">
+            {/* Left: System Health */}
+            <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase tracking-wide text-slate-500">
+                    System Health
+                </span>
+                <span className="text-sm font-medium text-white">
+                    {getStatusText()}
+                </span>
+                <span className="text-[10px] text-slate-400">
+                    {getStatusBadges()}
+                </span>
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
                 <button
                     onClick={onRefresh}
                     disabled={loading}

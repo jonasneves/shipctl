@@ -4,7 +4,7 @@ import AppCard from './AppCard';
 import BuildPanel from './BuildPanel';
 import ObservePanel from './ObservePanel';
 import StatusRing from './StatusRing';
-import { Zap, Rocket, Package, Workflow, Search } from 'lucide-react';
+import { Package, Workflow, Search, Rocket } from 'lucide-react';
 import DeployPanel from './DeployPanel';
 import {
     SERVICES,
@@ -494,8 +494,8 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     }, [allApps, searchQuery]);
 
     return (
-        <div className="space-y-4 pt-2">
-            {/* Visual Status Ring */}
+        <div className="space-y-2 pt-2">
+            {/* Status Ring */}
             <StatusRing
                 online={stats.online}
                 down={stats.down}
@@ -507,14 +507,22 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 onSettings={onOpenSettings}
             />
 
-            {/* Global Actions */}
-            <div className="flex items-center gap-3 pt-2">
-                {/* Deploy All Button */}
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => triggerWorkflow('Build Images')}
+                    disabled={!!triggering || !githubToken}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Build all images"
+                >
+                    <Package className="w-3.5 h-3.5" />
+                    <span>Build Images</span>
+                </button>
                 <button
                     onClick={triggerAllWorkflows}
                     disabled={!!triggering || !githubToken}
                     className={`
-                        flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
+                        flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
                         transition-colors
                         ${triggering
                             ? 'bg-blue-500/20 text-blue-400 cursor-wait'
@@ -522,40 +530,20 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         }
                         disabled:opacity-50 disabled:cursor-not-allowed
                     `}
+                    title="Deploy all services"
                 >
-                    <Rocket className="w-4 h-4" />
+                    <Rocket className="w-3.5 h-3.5" />
                     <span>{triggering ? 'Deploying...' : 'Deploy All'}</span>
                 </button>
-
-                {/* Build Images Button */}
-                <button
-                    onClick={() => triggerWorkflow('Build Images')}
-                    disabled={!!triggering || !githubToken}
-                    className={`
-                        flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold
-                        transition-colors
-                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/30
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                    `}
-                >
-                    <Package className="w-4 h-4" />
-                    <span>Build Images</span>
-                </button>
-
-                {/* View Actions Button */}
                 <a
                     href={`https://github.com/${githubRepoOwner}/${githubRepoName}/actions`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`
-                        flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-semibold
-                        transition-colors
-                        bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/30
-                        ${(!githubRepoOwner || !githubRepoName) ? 'opacity-50 pointer-events-none' : ''}
-                    `}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs text-slate-300 hover:text-white bg-slate-800/30 hover:bg-slate-800/50 border border-slate-700/30 transition-colors ${(!githubRepoOwner || !githubRepoName) ? 'opacity-50 pointer-events-none' : ''}`}
                     title="Open GitHub Actions"
                 >
-                    <Workflow className="w-4 h-4 ml-1" />
+                    <Workflow className="w-3.5 h-3.5" />
+                    <span>View Actions</span>
                 </a>
             </div>
 
@@ -567,7 +555,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filter apps..."
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-800/40 border border-slate-700/30 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:bg-slate-800/60 focus:border-blue-500/60 transition-all"
+                    className="w-full pl-9 pr-4 py-2 bg-slate-800/40 border border-slate-700/30 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:bg-slate-800/60 focus:border-blue-500/60 transition-all"
                 />
             </div>
 
