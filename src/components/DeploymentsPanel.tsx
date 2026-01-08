@@ -494,10 +494,36 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         return apps;
     }, [allApps, searchQuery]);
 
-    // Separate standalone workflows (no serviceKey)
+    // Build map of which workflows deploy which services
+    const workflowToServiceMap = useMemo(() => {
+        const map = new Map<string, string>();
+
+        // Explicit serviceKey mappings
+        KEY_WORKFLOWS.forEach(wf => {
+            if (wf.serviceKey) {
+                map.set(wf.name, wf.serviceKey);
+            }
+        });
+
+        // Infer from service usage (e.g., chat-api uses 'Chat' workflow)
+        allApps.forEach(app => {
+            const serviceConfig = SERVICES.find(s => s.key === app.id);
+            const wfName = serviceConfig
+                ? (KEY_WORKFLOWS.find(k => k.serviceKey === app.id)?.name)
+                : 'Chat'; // chat-api fallback
+
+            if (wfName && !map.has(wfName)) {
+                map.set(wfName, app.id);
+            }
+        });
+
+        return map;
+    }, [allApps]);
+
+    // Separate standalone workflows (workflows not tied to any service)
     const standaloneWorkflows = useMemo(() => {
         return KEY_WORKFLOWS
-            .filter(wf => !wf.serviceKey)
+            .filter(wf => !workflowToServiceMap.has(wf.name))
             .map(wf => {
                 const workflowInfo = workflows.get(wf.name);
                 const run = runs.get(wf.name);
@@ -507,7 +533,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     run,
                 };
             });
-    }, [workflows, runs]);
+    }, [workflows, runs, workflowToServiceMap]);
 
     // Count stats for section headers
     const serviceStats = useMemo(() => {
