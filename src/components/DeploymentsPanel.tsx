@@ -571,8 +571,8 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 />
             </div>
 
-            {/* All Services (grid layout) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {/* All Services (compact list) */}
+            <div className="flex flex-col gap-1">
                 {filteredAndSortedApps.map(app => {
                     // Find workflow and run info for this app
                     const serviceConfig = SERVICES.find(s => s.key === app.id);
@@ -584,6 +584,12 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
 
                     const uptimeData = uptimeStats.get(app.id);
                     const uptimePercent = uptimeData ? (uptimeData.successful / uptimeData.total) * 100 : undefined;
+
+                    const handleDeploy = () => {
+                        if (wfName) {
+                            triggerWorkflow(wfName);
+                        }
+                    };
 
                     return (
                         <AppCard
@@ -602,7 +608,8 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                             errorCount={0}
                             uptimePercent={uptimePercent}
                             lastDeployAt={runs.get(wfName || '')?.updated_at}
-                            defaultExpanded={false}
+                            onDeploy={wfName ? handleDeploy : undefined}
+                            deployTriggering={triggering === wfName}
                             deployButton={
                                 <DeployPanel
                                     appId={app.id}

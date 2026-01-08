@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, ExternalLink, Rocket, Terminal } from 'lucide-react';
 import Sparkline from './Sparkline';
 import HealthBadge from './HealthBadge';
 
@@ -21,7 +21,8 @@ interface AppCardProps {
   deployButton?: React.ReactNode;
   buildActions?: React.ReactNode;
   observeLogs?: React.ReactNode;
-  defaultExpanded?: boolean;
+  onDeploy?: () => void;
+  deployTriggering?: boolean;
 }
 
 const formatLatency = (latency?: number) => {
@@ -92,41 +93,22 @@ const AppCard: React.FC<AppCardProps> = ({
   name,
   status,
   deploymentStatus,
-  localStatus,
   latency,
   publicEndpoint,
   endpointUrl,
-  localEndpointUrl,
-  deploymentUrl,
   latencyHistory = [],
   errorCount = 0,
-  uptimePercent,
-  lastDeployAt,
   deployButton,
   buildActions,
   observeLogs,
-  defaultExpanded = false,
+  onDeploy,
+  deployTriggering = false,
 }) => {
   const isDeploying = deploymentStatus === 'in_progress' || deploymentStatus === 'queued';
   const isHealthy = status === 'running' || status === 'ok';
   const isDown = status === 'stopped' || status === 'down';
-  const hasFailed = deploymentStatus === 'failure';
 
-  const shouldAutoExpand = () => {
-    if (isDeploying) return true;
-    if (isDown) return true;
-    if (hasFailed) return true;
-    if (errorCount > 0) return true;
-    return false;
-  };
-
-  const [expanded, setExpanded] = useState(defaultExpanded || shouldAutoExpand());
-
-  useEffect(() => {
-    if (shouldAutoExpand() && !expanded) {
-      setExpanded(true);
-    }
-  }, [status, deploymentStatus, errorCount, expanded]);
+  const [expanded, setExpanded] = useState(false);
 
   const getAccentClass = () => {
     if (isDeploying) return ACCENT_COLORS.deploying;
@@ -135,57 +117,123 @@ const AppCard: React.FC<AppCardProps> = ({
     return ACCENT_COLORS.checking;
   };
 
+  const handleRowClick = () => {
+    setExpanded(!expanded);
+  };
+
+  const handleQuickAction = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    action();
+  };
+
   return (
     <div
       className={`
-        rounded-xl bg-slate-800/40 border border-slate-700/30 overflow-hidden
+        rounded-lg bg-slate-800/40 border border-slate-700/30 overflow-hidden
         border-l-2 ${getAccentClass()}
         transition-colors
         hover:bg-slate-800/60
       `}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-1.5">
-        {/* Status Indicator */}
+      {/* Compact Header - Single Line */}
+      <div
+        className="flex items-center gap-2 px-3 py-1 cursor-pointer"
+        onClick={handleRowClick}
+      >
+        {/* Status Dot */}
         <div className="relative flex-shrink-0">
           <StatusDot
             status={isDeploying ? 'building' : status}
-            size="md"
+            size="sm"
             pulse={isDeploying}
           />
         </div>
 
-        {/* Name & Metrics */}
-        <div className="flex flex-col items-start min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-100">
-              {name}
-            </span>
-            {latency && isHealthy && (
-              <span className={`text-[10px] font-mono tabular-nums ${getLatencyColor(latency)}`}>
-                {formatLatency(latency)}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2 w-full">
-            <span className="text-[10px] text-slate-500 truncate">
-              {publicEndpoint}
-            </span>
-            {latencyHistory.length > 0 && isHealthy && (
-              <Sparkline data={latencyHistory} width={50} height={16} />
-            )}
-          </div>
-        </div>
+        {/* Name */}
+        <span className="text-xs font-medium text-slate-100 truncate">
+          {name}
+        </span>
 
-        {/* Expand Chevron */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="p-1 hover:bg-slate-700/50 rounded transition-colors"
-        >
-          <ChevronRight
-            className={`w-3.5 h-3.5 text-slate-500 transition-transform ${expanded ? 'rotate-90' : ''}`}
-          />
-        </button>
+        {/* Error Badge */}
+        {errorCount > 0 && (
+          <HealthBadge variant="error" value={errorCount} />
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1 min-w-[8px]" />
+
+        {/* Latency */}
+        {isHealthy && (
+          <span className={`text-[10px] font-mono tabular-nums ${getLatencyColor(latency)}`}>
+            {formatLatency(latency) || '--ms'}
+          </span>
+        )}
+
+        {/* Sparkline */}
+        {latencyHistory.length > 0 && isHealthy && (
+          <Sparkline data={latencyHistory} width={40} height={14} />
+        )}
+
+        {/* Quick Actions */}
+        <div className="flex items-center gap-1 ml-2">
+          {/* Open Endpoint */}
+          {endpointUrl && (
+            <a
+              href={endpointUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
+              title="Open endpoint"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          )}
+
+          {/* Deploy Now */}
+          {onDeploy && (
+            <button
+              onClick={(e) => handleQuickAction(e, onDeploy)}
+              disabled={deployTriggering}
+              className="p-1 text-slate-500 hover:text-emerald-400 hover:bg-slate-700/50 rounded transition-colors disabled:opacity-50"
+              title="Deploy now"
+            >
+              <Rocket className={`w-3.5 h-3.5 ${deployTriggering ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+
+          {/* View Logs */}
+          {observeLogs && (
+            <button
+              onClick={(e) => handleQuickAction(e, () => setExpanded(true))}
+              className="p-1 text-slate-500 hover:text-blue-400 hover:bg-slate-700/50 rounded transition-colors"
+              title="View logs"
+            >
+              <Terminal className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Expand Toggle */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(!expanded);
+            }}
+            className="p-1 text-slate-500 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
+            title={expanded ? "Collapse" : "Expand"}
+          >
+            <ChevronRight
+              className={`w-3.5 h-3.5 transition-transform ${expanded ? 'rotate-90' : ''}`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Endpoint URL - Second Line */}
+      <div className="px-3 pb-1">
+        <span className="text-[10px] text-slate-500 truncate block">
+          {publicEndpoint}
+        </span>
       </div>
 
       {/* Expanded Content */}
@@ -216,73 +264,6 @@ const AppCard: React.FC<AppCardProps> = ({
           )}
         </div>
       )}
-
-      {/* Compact Footer Status */}
-      <div className="border-t border-slate-700/30 px-3 py-1.5 bg-slate-900/40">
-        <div className="flex items-center justify-between gap-2 text-[10px]">
-          <div className="flex items-center gap-2">
-            {/* Local Status */}
-            {localEndpointUrl ? (
-              <a
-                href={localEndpointUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
-                title={localEndpointUrl}
-              >
-                <StatusDot status={localStatus || 'down'} size="sm" />
-                <span className="text-slate-500 hover:text-slate-300 transition-colors">Local</span>
-              </a>
-            ) : (
-              <div className="flex items-center gap-1.5 opacity-50 cursor-not-allowed">
-                <StatusDot status={localStatus || 'down'} size="sm" />
-                <span className="text-slate-500">Local</span>
-              </div>
-            )}
-
-            <span className="text-slate-700">•</span>
-
-            {/* Deploy Status */}
-            <a
-              href={deploymentUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1.5 hover:text-slate-300 transition-colors"
-              title="View deployment"
-            >
-              <StatusDot
-                status={
-                  deploymentStatus === 'success' ? 'ok' :
-                    deploymentStatus === 'failure' ? 'down' :
-                      deploymentStatus === 'in_progress' ? 'deploying' :
-                        deploymentStatus === 'queued' ? 'deploying' :
-                          'unknown'
-                }
-                size="sm"
-                pulse={isDeploying}
-              />
-              <span className="text-slate-500 hover:text-slate-300 transition-colors">
-                Pipeline
-              </span>
-            </a>
-          </div>
-
-          {/* Health Badges */}
-          <div className="flex items-center gap-1.5">
-            {uptimePercent !== undefined && uptimePercent > 0 && (
-              <HealthBadge variant="uptime" value={`${uptimePercent.toFixed(0)}%`} />
-            )}
-            {errorCount > 0 && (
-              <HealthBadge variant="error" value={errorCount} />
-            )}
-            {lastDeployAt && (
-              <HealthBadge variant="deploy" value={formatRelativeTime(lastDeployAt)} />
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
