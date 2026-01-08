@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AppCard from './AppCard';
-
+import CollapsibleSection from './CollapsibleSection';
+import WorkflowCard from './WorkflowCard';
 import BuildPanel from './BuildPanel';
 import ObservePanel from './ObservePanel';
 import StatusRing from './StatusRing';
@@ -493,6 +494,40 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         return apps;
     }, [allApps, searchQuery]);
 
+    // Separate standalone workflows (no serviceKey)
+    const standaloneWorkflows = useMemo(() => {
+        return KEY_WORKFLOWS
+            .filter(wf => !wf.serviceKey)
+            .map(wf => {
+                const workflowInfo = workflows.get(wf.name);
+                const run = runs.get(wf.name);
+                return {
+                    name: wf.name,
+                    workflowInfo,
+                    run,
+                };
+            });
+    }, [workflows, runs]);
+
+    // Count stats for section headers
+    const serviceStats = useMemo(() => {
+        const online = filteredAndSortedApps.filter(app =>
+            app.status === 'running' || app.status === 'ok'
+        ).length;
+        const down = filteredAndSortedApps.filter(app =>
+            app.status === 'stopped' || app.status === 'down'
+        ).length;
+        return { online, down, total: filteredAndSortedApps.length };
+    }, [filteredAndSortedApps]);
+
+    const workflowStats = useMemo(() => {
+        const active = standaloneWorkflows.filter(wf =>
+            wf.run?.status === 'in_progress' || wf.run?.status === 'queued'
+        ).length;
+        const recent = standaloneWorkflows.filter(wf => wf.run).length;
+        return { active, recent, total: standaloneWorkflows.length };
+    }, [standaloneWorkflows]);
+
     return (
         <div className="space-y-2 pt-2">
             {/* Status Ring */}
@@ -559,8 +594,12 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 />
             </div>
 
-            {/* All Services (compact list) */}
-            <div className="flex flex-col gap-1">
+            {/* Services Section */}
+            <CollapsibleSection
+                title="Services"
+                subtitle={`${serviceStats.online} running${serviceStats.down > 0 ? `, ${serviceStats.down} down` : ''}`}
+                defaultExpanded={true}
+            >
                 {filteredAndSortedApps.map(app => {
                     // Find workflow and run info for this app
                     const serviceConfig = SERVICES.find(s => s.key === app.id);
@@ -635,7 +674,34 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                         />
                     );
                 })}
-            </div>
+            </CollapsibleSection>
+
+            {/* Workflows Section */}
+            {standaloneWorkflows.length > 0 && (
+                <CollapsibleSection
+                    title="Workflows"
+                    subtitle={
+                        workflowStats.active > 0
+                            ? `${workflowStats.active} active, ${workflowStats.recent} recent`
+                            : `${workflowStats.recent} recent`
+                    }
+                    defaultExpanded={workflowStats.active > 0}
+                >
+                    {standaloneWorkflows.map(wf => (
+                        <WorkflowCard
+                            key={wf.name}
+                            name={wf.name}
+                            status={wf.run?.status}
+                            conclusion={wf.run?.conclusion}
+                            updatedAt={wf.run?.updated_at}
+                            htmlUrl={wf.run?.html_url || (wf.workflowInfo ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${WORKFLOW_PATHS.get(wf.name)}` : undefined)}
+                            onTrigger={() => triggerWorkflow(wf.name)}
+                            triggering={triggering === wf.name}
+                            disabled={!githubToken}
+                        />
+                    ))}
+                </CollapsibleSection>
+            )}
 
             {/* Build Error (global) */}
             {
