@@ -4,20 +4,14 @@ import Sparkline from './Sparkline';
 import HealthBadge from './HealthBadge';
 
 interface AppCardProps {
-  id: string;
   name: string;
   status: 'running' | 'stopped' | 'building' | 'deploying' | 'ok' | 'down' | 'checking';
   deploymentStatus?: 'success' | 'failure' | 'in_progress' | 'queued' | 'unknown';
-  localStatus?: 'ok' | 'down' | 'checking';
   latency?: number;
   publicEndpoint: string;
   endpointUrl?: string;
-  localEndpointUrl?: string;
-  deploymentUrl?: string;
   latencyHistory?: number[];
   errorCount?: number;
-  uptimePercent?: number;
-  lastDeployAt?: string;
   deployButton?: React.ReactNode;
   buildActions?: React.ReactNode;
   observeLogs?: React.ReactNode;
@@ -29,20 +23,6 @@ const formatLatency = (latency?: number) => {
   if (!latency) return null;
   if (latency < 1000) return `${latency}ms`;
   return `${(latency / 1000).toFixed(1)}s`;
-};
-
-const formatRelativeTime = (isoString: string) => {
-  const now = Date.now();
-  const then = new Date(isoString).getTime();
-  const diffMs = now - then;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffDays > 0) return `${diffDays}d`;
-  if (diffHours > 0) return `${diffHours}h`;
-  if (diffMins > 0) return `${diffMins}m`;
-  return 'now';
 };
 
 const STATUS_COLORS = {

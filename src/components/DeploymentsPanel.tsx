@@ -32,8 +32,6 @@ interface DeploymentsPanelProps {
     onOpenSettings?: () => void;
 }
 
-const KEY_WORKFLOWS = WORKFLOWS;
-
 const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, githubRepoOwner, githubRepoName, chatApiBaseUrl, modelsBaseDomain, modelsUseHttps, showOnlyBackend = false, onBackendStatusChange, onActiveDeploymentsChange, onOpenSettings }) => {
     const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
     const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
@@ -53,7 +51,6 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     const [buildNativeError, setBuildNativeError] = useState<string | null>(null);
     const [modelHealthHistory, setModelHealthHistory] = useState<Map<string, number[]>>(new Map());
     const [backendHealthHistory, setBackendHealthHistory] = useState<number[]>([]);
-    const [uptimeStats, setUptimeStats] = useState<Map<string, { successful: number; total: number }>>(new Map());
     const [activeTab, setActiveTab] = useState<'services' | 'workflows'>('services');
 
     const refreshInFlight = useRef(false);
@@ -141,18 +138,6 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                 const latency = res.status.latency || 0;
                 const newHistory = [...existing, latency].slice(-10);
                 next.set(res.key, newHistory);
-            }
-            return next;
-        });
-
-        // Update uptime stats
-        setUptimeStats(prev => {
-            const next = new Map(prev);
-            for (const res of results) {
-                const existing = prev.get(res.key) || { successful: 0, total: 0 };
-                const successful = existing.successful + (res.status.status === 'ok' ? 1 : 0);
-                const total = existing.total + 1;
-                next.set(res.key, { successful, total });
             }
             return next;
         });
@@ -246,9 +231,9 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
             const workflows = await github.getWorkflows();
             const wfMap = new Map<string, WorkflowInfo>();
 
-            // Map all KEY_WORKFLOWS to their corresponding GitHub workflow
+            // Map all WORKFLOWS to their corresponding GitHub workflow
             // Handle case where multiple models share the same workflow file (inference.yml)
-            for (const keyWf of KEY_WORKFLOWS) {
+            for (const keyWf of WORKFLOWS) {
                 const matchingGhWf = workflows.find(wf =>
                     wf.path === keyWf.path || wf.path?.endsWith(`/${keyWf.path}`)
                 );
@@ -277,7 +262,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         for (const [name, wf] of workflows) {
             try {
                 // For inference workflows, filter by model name
-                const workflowConfig = KEY_WORKFLOWS.find(w => w.name === name);
+                const workflowConfig = WORKFLOWS.find(w => w.name === name);
                 const filterByModel = workflowConfig?.serviceKey;
 
                 const run = await github.getLatestRun(wf.id, filterByModel);
@@ -318,7 +303,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
             const workflowIdentifier = wf?.id ?? fallbackPath;
 
             // For inference workflows, pass the model as input
-            const workflowConfig = KEY_WORKFLOWS.find(w => w.name === workflowName);
+            const workflowConfig = WORKFLOWS.find(w => w.name === workflowName);
             const inputs = workflowConfig?.serviceKey
                 ? { model: workflowConfig.serviceKey }
                 : undefined;
@@ -338,7 +323,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
     };
 
     const triggerAllWorkflows = async () => {
-        const allServiceWorkflows = KEY_WORKFLOWS.filter(wf => wf.serviceKey);
+        const allServiceWorkflows = WORKFLOWS.filter(wf => wf.serviceKey);
         for (const wf of allServiceWorkflows) {
             await triggerWorkflow(wf.name);
         }
@@ -400,62 +385,41 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         return 'unknown';
     };
 
-    const buildWorkflowUrl = (workflowName: string | null) => {
-        if (!workflowName) return undefined;
-        const path = WORKFLOW_PATHS.get(workflowName);
-        return path ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${path}` : `https://github.com/${githubRepoOwner}/${githubRepoName}/actions`;
-    };
-
-
-
-    const chatEndpoint = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
     const publicDomain = modelsBaseDomain || 'neevs.io';
     const publicScheme = modelsBaseDomain ? (modelsUseHttps ? 'https' : 'http') : 'https';
     const chatPublicUrl = (chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1'))
         ? `${publicScheme}://chat.${publicDomain}`
         : (normalizeBaseUrl(chatApiBaseUrl) || `${publicScheme}://chat.${publicDomain}`);
 
-    // Build apps grouped by category
     const buildApp = (service: ServiceConfig | null, appId: string, name: string, isChatApi: boolean = false) => {
         if (isChatApi) {
+            const status = backendHealth.status === 'ok' ? 'running' as const :
+                           backendHealth.status === 'down' ? 'stopped' as const :
+                           'checking' as const;
             return {
                 id: 'chat-api',
                 name: 'Chat API',
-                status: backendHealth.status === 'ok' ? 'running' as const : backendHealth.status === 'down' ? 'stopped' as const : 'checking' as const,
+                status,
                 deploymentStatus: getDeploymentStatusForApp('chat-api'),
-                localStatus: chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1') ? backendHealth.status : undefined,
                 latency: backendHealth.latency,
                 publicEndpoint: `chat.${publicDomain}`,
                 endpointUrl: chatPublicUrl,
-                localEndpointUrl: chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1') ? chatEndpoint : undefined,
-                deploymentUrl: runs.get('Chat')?.html_url || buildWorkflowUrl('Chat'),
-                category: 'core' as const,
             };
         }
 
-        const endpoint = buildEndpoint(appId, service!.localPort, modelsBaseDomain, modelsUseHttps);
         const health = modelHealthStatuses.get(appId) || { status: 'checking' as const };
-        const workflowName = SERVICE_TO_WORKFLOW.get(appId) || name;
-        const isLocal = endpoint.includes('localhost') || endpoint.includes('127.0.0.1');
-        const publicEndpointUrl = `${publicScheme}://${appId}.${publicDomain}`;
-
         return {
             id: appId,
-            name: name,
+            name,
             status: health.status,
             deploymentStatus: getDeploymentStatusForApp(appId),
-            localStatus: isLocal ? health.status : undefined,
             latency: health.latency,
             publicEndpoint: `${appId}.${publicDomain}`,
-            endpointUrl: publicEndpointUrl,
-            localEndpointUrl: isLocal ? endpoint : undefined,
-            deploymentUrl: runs.get(workflowName)?.html_url || buildWorkflowUrl(workflowName),
-            category: service!.category,
+            endpointUrl: `${publicScheme}://${appId}.${publicDomain}`,
         };
     };
 
     const chatApp = buildApp(null, 'chat-api', 'Chat API', true);
-
 
     // Flatten all services
     const allApps = [
@@ -499,7 +463,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         const map = new Map<string, string>();
 
         // Explicit serviceKey mappings
-        KEY_WORKFLOWS.forEach(wf => {
+        WORKFLOWS.forEach(wf => {
             if (wf.serviceKey) {
                 map.set(wf.name, wf.serviceKey);
             }
@@ -509,7 +473,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
         allApps.forEach(app => {
             const serviceConfig = SERVICES.find(s => s.key === app.id);
             const wfName = serviceConfig
-                ? (KEY_WORKFLOWS.find(k => k.serviceKey === app.id)?.name)
+                ? (WORKFLOWS.find(k => k.serviceKey === app.id)?.name)
                 : 'Chat'; // chat-api fallback
 
             if (wfName && !map.has(wfName)) {
@@ -522,7 +486,7 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
 
     // Separate standalone workflows (workflows not tied to any service)
     const standaloneWorkflows = useMemo(() => {
-        return KEY_WORKFLOWS
+        return WORKFLOWS
             .filter(wf => !workflowToServiceMap.has(wf.name))
             .map(wf => {
                 const workflowInfo = workflows.get(wf.name);
@@ -664,16 +628,10 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
             {activeTab === 'services' && (
                 <div className="space-y-2">
                 {filteredAndSortedApps.map(app => {
-                    // Find workflow and run info for this app
                     const serviceConfig = SERVICES.find(s => s.key === app.id);
                     const wfName = serviceConfig
-                        ? (KEY_WORKFLOWS.find(k => k.serviceKey === app.id)?.name)
+                        ? (WORKFLOWS.find(k => k.serviceKey === app.id)?.name)
                         : 'Chat';
-                    const wf = workflows.get(wfName || '');
-                    const run = runs.get(wfName || '');
-
-                    const uptimeData = uptimeStats.get(app.id);
-                    const uptimePercent = uptimeData ? (uptimeData.successful / uptimeData.total) * 100 : undefined;
 
                     const handleDeploy = () => {
                         if (wfName) {
@@ -684,20 +642,13 @@ const DeploymentsPanel: React.FC<DeploymentsPanelProps> = ({ githubToken, github
                     return (
                         <AppCard
                             key={app.id}
-                            id={app.id}
                             name={app.name}
                             status={app.status}
                             deploymentStatus={app.deploymentStatus}
-                            localStatus={app.localStatus}
                             latency={app.latency}
                             publicEndpoint={app.publicEndpoint}
                             endpointUrl={app.endpointUrl}
-                            localEndpointUrl={app.localEndpointUrl}
-                            deploymentUrl={app.deploymentUrl}
                             latencyHistory={app.id === 'chat-api' ? backendHealthHistory : modelHealthHistory.get(app.id) || []}
-                            errorCount={0}
-                            uptimePercent={uptimePercent}
-                            lastDeployAt={runs.get(wfName || '')?.updated_at}
                             onDeploy={wfName ? handleDeploy : undefined}
                             deployTriggering={triggering === wfName}
                             deployButton={

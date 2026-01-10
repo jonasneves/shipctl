@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import extensionConfig from '../data/extension-config.json';
+import { normalizeBaseUrl } from '../utils/url';
 
 // Types for generated config
 export interface ServiceConfig {
@@ -121,7 +122,7 @@ export function normalizeEnvConfig(raw: unknown): EnvConfig {
     githubRepoOwner: typeof merged.githubRepoOwner === 'string' ? merged.githubRepoOwner : DEFAULT_CONFIG.githubRepoOwner,
     githubRepoName: typeof merged.githubRepoName === 'string' ? merged.githubRepoName : DEFAULT_CONFIG.githubRepoName,
     profile,
-    chatApiBaseUrl: normalizeChatApiBaseUrl(typeof merged.chatApiBaseUrl === 'string' ? merged.chatApiBaseUrl : ''),
+    chatApiBaseUrl: normalizeBaseUrl(typeof merged.chatApiBaseUrl === 'string' ? merged.chatApiBaseUrl : '') || 'http://localhost:8080',
     modelsBaseDomain: typeof merged.modelsBaseDomain === 'string' ? merged.modelsBaseDomain : DEFAULT_CONFIG.modelsBaseDomain,
     modelsUseHttps: typeof merged.modelsUseHttps === 'boolean' ? merged.modelsUseHttps : DEFAULT_CONFIG.modelsUseHttps,
     repoPath: typeof merged.repoPath === 'string' ? merged.repoPath : undefined,
@@ -142,12 +143,6 @@ export function buildEndpoint(
 
 function isExtensionContext(): boolean {
   return typeof chrome !== 'undefined' && !!chrome.storage?.local;
-}
-
-function normalizeChatApiBaseUrl(chatApiBaseUrl: string): string {
-  const trimmed = chatApiBaseUrl.trim().replace(/\/+$/, '');
-  if (!trimmed) return 'http://localhost:8080';
-  return trimmed;
 }
 
 export function useExtensionConfig() {

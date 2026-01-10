@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Settings, Globe, Eye, EyeOff, Sparkles, ExternalLink } from 'lucide-react';
-import { SERVICES, buildEndpoint, EnvConfig, normalizeEnvConfig } from '../hooks/useExtensionConfig';
+import { AlertCircle, CheckCircle, Globe, Eye, EyeOff, Sparkles, ExternalLink } from 'lucide-react';
+import { EnvConfig, normalizeEnvConfig } from '../hooks/useExtensionConfig';
 import DeploymentsPanel from './DeploymentsPanel';
 import ErrorBoundary from './ErrorBoundary';
 import { nativeHost } from '../services/nativeHost';

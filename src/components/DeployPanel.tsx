@@ -75,18 +75,20 @@ const DeployPanel: React.FC<DeployPanelProps> = ({
       {run && (
         <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg mt-2">
           <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${isSuccess ? 'bg-emerald-400'
-                : isFailed ? 'bg-red-400'
-                  : isActive ? 'bg-blue-400 animate-pulse'
-                    : 'bg-slate-600'
-              }`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              isSuccess ? 'bg-emerald-400' :
+              isFailed ? 'bg-red-400' :
+              isActive ? 'bg-blue-400 animate-pulse' :
+              'bg-slate-600'
+            }`} />
             <div className="flex flex-col">
               <span className="text-[10px] text-slate-400">Last deployment</span>
-              <span className={`text-xs font-medium ${isSuccess ? 'text-emerald-400'
-                  : isFailed ? 'text-red-400'
-                    : isActive ? 'text-blue-400'
-                      : 'text-slate-500'
-                }`}>
+              <span className={`text-xs font-medium ${
+                isSuccess ? 'text-emerald-400' :
+                isFailed ? 'text-red-400' :
+                isActive ? 'text-blue-400' :
+                'text-slate-500'
+              }`}>
                 {run.conclusion || run.status}
               </span>
             </div>
