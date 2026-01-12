@@ -1,8 +1,6 @@
 interface HealthStatus {
   status: 'ok' | 'down' | 'checking';
   latency?: number;
-  lastCheck?: string;
-  history?: number[];
 }
 
 class HealthChecker {
@@ -29,40 +27,16 @@ class HealthChecker {
       const status: HealthStatus = {
         status: response.ok ? 'ok' : 'down',
         latency,
-        lastCheck: new Date().toISOString(),
       };
-
       this.cache.set(url, status);
       return status;
     } catch {
-      const status: HealthStatus = {
-        status: 'down',
-        lastCheck: new Date().toISOString(),
-      };
+      const status: HealthStatus = { status: 'down' };
       this.cache.set(url, status);
       return status;
     } finally {
       this.checking.delete(url);
     }
-  }
-
-  async checkAll(urls: string[]): Promise<Map<string, HealthStatus>> {
-    const results = await Promise.allSettled(
-      urls.map(url => this.check(url))
-    );
-
-    const map = new Map<string, HealthStatus>();
-    urls.forEach((url, i) => {
-      const result = results[i];
-      if (result.status === 'fulfilled') {
-        map.set(url, result.value);
-      }
-    });
-    return map;
-  }
-
-  clearCache(): void {
-    this.cache.clear();
   }
 }
 

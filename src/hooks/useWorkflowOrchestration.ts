@@ -22,6 +22,8 @@ export function useWorkflowOrchestration({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [triggering, setTriggering] = useState<string | null>(null);
+  // Track workflows that were just triggered (for immediate "starting" feedback)
+  const [recentlyTriggered, setRecentlyTriggered] = useState<Set<string>>(new Set());
 
   const github = useMemo(
     () => new GitHubService(githubToken, githubRepoOwner, githubRepoName),
@@ -101,7 +103,23 @@ export function useWorkflowOrchestration({
       const success = await github.triggerWorkflow(workflowIdentifier!, inputs);
 
       if (success) {
+        // Mark as recently triggered for immediate "starting" feedback
+        setRecentlyTriggered(prev => new Set(prev).add(workflowName));
+
+        // Aggressive refresh polling: 3s, 6s, 10s
+        // This catches the new run quickly and clears recentlyTriggered once we see queued/in_progress
         setTimeout(() => onRefresh?.(), 3000);
+        setTimeout(() => onRefresh?.(), 6000);
+        setTimeout(() => onRefresh?.(), 10000);
+
+        // Clear from recentlyTriggered after 15s (by then we should have real status)
+        setTimeout(() => {
+          setRecentlyTriggered(prev => {
+            const next = new Set(prev);
+            next.delete(workflowName);
+            return next;
+          });
+        }, 15000);
       } else {
         setError(`Failed to trigger ${workflowName}`);
       }
@@ -120,9 +138,24 @@ export function useWorkflowOrchestration({
     await triggerWorkflow('Chat');
   }, [triggerWorkflow]);
 
-  // Deploying count for stats
+  // Deploying count for stats - only counts non-service workflows (traditional CI/CD)
+  // Service workflows with in_progress status means they're "running", not "deploying"
   const deployingCount = useMemo(() => {
-    return [...runs.values()].filter(r => r?.status === 'in_progress' || r?.status === 'queued').length;
+    let count = 0;
+    for (const [name, run] of runs) {
+      if (!run) continue;
+      if (run.status !== 'in_progress' && run.status !== 'queued') continue;
+
+      // Check if this workflow is a long-running service (has serviceKey)
+      const workflowConfig = WORKFLOWS.find(w => w.name === name);
+      const isServiceWorkflow = !!workflowConfig?.serviceKey || name === 'Chat';
+
+      // Only count as "deploying" if it's NOT a long-running service
+      if (!isServiceWorkflow) {
+        count++;
+      }
+    }
+    return count;
   }, [runs]);
 
   return {
@@ -131,8 +164,8 @@ export function useWorkflowOrchestration({
     loading,
     error,
     triggering,
+    recentlyTriggered,
     setLoading,
-    setError,
     fetchWorkflows,
     fetchLatestRuns,
     triggerWorkflow,

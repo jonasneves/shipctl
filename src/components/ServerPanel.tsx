@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Globe, Eye, EyeOff, Sparkles, ExternalLink, X } from 'lucide-react';
+import { ArrowLeft, Globe, Eye, EyeOff, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG } from '../hooks/useExtensionConfig';
-import DeploymentsPanel from './DeploymentsPanel';
+import ControlPanel from './ControlPanel';
 import ErrorBoundary from './ErrorBoundary';
 import ErrorDisplay from './ErrorDisplay';
 import { nativeHost } from '../services/nativeHost';
-
-const INPUT_CLASS = 'w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all';
 
 const ServerPanel: React.FC = () => {
   const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
@@ -32,63 +30,64 @@ const ServerPanel: React.FC = () => {
       );
 
       if (response?.ok) {
-        setSaveStatus({ message: 'Configuration saved. If you changed Python path, run: ./native-host/install-macos.sh', variant: 'success' });
+        setSaveStatus({ message: 'Configuration saved successfully.', variant: 'success' });
       } else {
         setSaveStatus({ message: response?.error || 'Failed to save config', variant: 'error' });
       }
     } catch (err) {
       console.error('Failed to save config:', err);
-      setSaveStatus({ message: 'Failed to save config file. Make sure native host is installed.', variant: 'error' });
+      setSaveStatus({ message: 'Failed to save config file.', variant: 'error' });
     }
   };
 
-  return (
-    <div className="min-h-screen font-sans bg-slate-950 text-slate-100">
-      {showConfig ? (
-        <div className="relative z-10 p-4 space-y-4">
-          {/* Settings Header */}
-          <div className="flex items-center justify-between pb-2 border-b border-slate-700/30">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-slate-400" />
-              <h2 className="text-sm font-semibold text-white">Configuration</h2>
-            </div>
+  const inputClass = "w-full px-3 py-2.5 bg-[#0a0f14] border border-[#2a3544] rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all";
+
+  if (showConfig) {
+    return (
+      <div className="h-full bg-[#0a0f14] overflow-y-auto">
+        <div className="p-4 space-y-4">
+          {/* Header */}
+          <div className="flex items-center gap-3 pb-3 border-b border-[#1e2832]">
             <button
               onClick={() => setShowConfig(false)}
-              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50"
-              title="Close Settings"
+              className="p-1.5 -ml-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a232e] transition-all"
+              aria-label="Go back"
             >
-              <X className="w-4 h-4" />
+              <ArrowLeft className="w-4 h-4" />
             </button>
+            <h2 className="text-sm font-semibold text-white">Settings</h2>
           </div>
 
           {/* GitHub Token */}
-          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
+          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
+            <label htmlFor="github-token" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+              <Globe className="w-3.5 h-3.5 text-slate-500" />
               GitHub Token
             </label>
             <div className="relative">
               <input
+                id="github-token"
                 type={showToken ? 'text' : 'password'}
                 value={config.githubToken}
                 onChange={(e) => setConfig({ ...config, githubToken: e.target.value })}
-                className={`${INPUT_CLASS} pr-10`}
+                className={`${inputClass} pr-10`}
                 placeholder="github_pat_..."
               />
               <button
                 type="button"
                 onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                aria-label={showToken ? 'Hide token' : 'Show token'}
               >
                 {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {!config.githubToken && (
-              <p className="flex items-center gap-1.5 mt-2 text-[11px] text-amber-400/90">
+            {!config.githubToken ? (
+              <p className="flex items-center gap-1.5 mt-3 text-[11px] text-amber-400/90">
                 <AlertCircle className="w-3 h-3" />
                 Required for deployments.{' '}
                 <a
-                  href="https://github.com/settings/tokens/new?description=ShipCTL+Extension&scopes=repo,workflow&default_expires_at=none"
+                  href="https://github.com/settings/tokens/new?description=ShipCTL&scopes=repo,workflow"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-amber-300 inline-flex items-center gap-1"
@@ -96,9 +95,8 @@ const ServerPanel: React.FC = () => {
                   Create token <ExternalLink className="w-2.5 h-2.5" />
                 </a>
               </p>
-            )}
-            {config.githubToken && (
-              <p className="flex items-center gap-1.5 mt-2 text-[11px] text-emerald-400/90">
+            ) : (
+              <p className="flex items-center gap-1.5 mt-3 text-[11px] text-emerald-400/90">
                 <CheckCircle className="w-3 h-3" />
                 Token configured
               </p>
@@ -106,104 +104,105 @@ const ServerPanel: React.FC = () => {
           </div>
 
           {/* GitHub Repository */}
-          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
+          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+              <Globe className="w-3.5 h-3.5 text-slate-500" />
               GitHub Repository
-            </label>
+            </div>
             <div className="space-y-2">
               <input
                 type="text"
                 value={config.githubRepoOwner || ''}
                 onChange={(e) => setConfig({ ...config, githubRepoOwner: e.target.value })}
-                className={INPUT_CLASS}
-                placeholder="Repository owner (e.g., jonasneves)"
+                className={inputClass}
+                placeholder="Owner (e.g., jonasneves)"
               />
               <input
                 type="text"
                 value={config.githubRepoName || ''}
                 onChange={(e) => setConfig({ ...config, githubRepoName: e.target.value })}
-                className={INPUT_CLASS}
-                placeholder="Repository name (e.g., my-project)"
+                className={inputClass}
+                placeholder="Repository (e.g., my-project)"
               />
             </div>
-            <p className="mt-2 text-[11px] text-slate-400">
-              GitHub repository for workflow deployments
-            </p>
           </div>
 
           {/* Repository Path */}
-          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
+          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
+            <label htmlFor="repo-path" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+              <Globe className="w-3.5 h-3.5 text-slate-500" />
               Repository Path
             </label>
             <input
+              id="repo-path"
               type="text"
               value={config.repoPath || ''}
               onChange={(e) => setConfig({ ...config, repoPath: e.target.value })}
-              className={`${INPUT_CLASS} font-mono`}
+              className={`${inputClass} font-mono text-xs`}
               placeholder="~/Documents/GitHub/my-project"
             />
-            <p className="mt-2 text-[11px] text-slate-400">
-              Path to your project repository. Leave empty to auto-detect.
+            <p className="mt-2 text-[11px] text-slate-500">
+              Local path to your project. Leave empty to auto-detect.
             </p>
           </div>
 
           {/* Python Path */}
-          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
+          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
+            <label htmlFor="python-path" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+              <Globe className="w-3.5 h-3.5 text-slate-500" />
               Python Path
             </label>
             <input
+              id="python-path"
               type="text"
               value={config.pythonPath || ''}
               onChange={(e) => setConfig({ ...config, pythonPath: e.target.value })}
-              className={`${INPUT_CLASS} font-mono`}
-              placeholder="/path/to/python"
+              className={`${inputClass} font-mono text-xs`}
+              placeholder="/usr/bin/python3"
             />
-            <p className="mt-2 text-[11px] text-slate-400">
+            <p className="mt-2 text-[11px] text-slate-500">
               Python interpreter for native host. Leave empty to auto-detect.
             </p>
           </div>
 
           {/* Chat API URL */}
-          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
+          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
+            <label htmlFor="chat-api-url" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+              <Globe className="w-3.5 h-3.5 text-slate-500" />
               Chat API URL
             </label>
             <input
+              id="chat-api-url"
               type="text"
               value={config.chatApiBaseUrl}
               onChange={(e) => setConfig({ ...config, profile: 'custom', chatApiBaseUrl: e.target.value })}
-              className={INPUT_CLASS}
+              className={inputClass}
               placeholder="http://localhost:8080"
             />
           </div>
 
           {/* Models Domain */}
-          <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
-            <label className="flex items-center gap-2 text-xs font-medium text-slate-200 mb-2">
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
+          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
+            <label htmlFor="models-domain" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+              <Globe className="w-3.5 h-3.5 text-slate-500" />
               Models Domain
             </label>
             <div className="flex gap-2">
               <input
+                id="models-domain"
                 type="text"
                 value={config.modelsBaseDomain}
                 onChange={(e) => setConfig({ ...config, profile: 'custom', modelsBaseDomain: e.target.value.trim() })}
-                className={INPUT_CLASS.replace('w-full', 'flex-1')}
-                placeholder="neevs.io (or empty for localhost)"
+                className={inputClass}
+                placeholder="neevs.io"
               />
               {config.modelsBaseDomain && (
-                <label className="flex items-center gap-1.5 px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-xs text-slate-300 cursor-pointer hover:border-slate-500/60 transition-colors">
+                <label className="flex items-center gap-2 px-3 py-2 bg-[#0a0f14] border border-[#2a3544] rounded-xl text-xs text-slate-400 cursor-pointer hover:border-slate-500 transition-colors">
                   <input
                     type="checkbox"
                     checked={config.modelsUseHttps}
                     onChange={(e) => setConfig({ ...config, profile: 'custom', modelsUseHttps: e.target.checked })}
-                    className="w-3.5 h-3.5 rounded bg-slate-800 border-slate-600 accent-blue-500"
+                    className="w-3.5 h-3.5"
                   />
                   HTTPS
                 </label>
@@ -214,7 +213,7 @@ const ServerPanel: React.FC = () => {
           {/* Save Button */}
           <button
             onClick={saveConfig}
-            className="w-full px-4 py-2.5 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium text-white transition-colors"
+            className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium text-white transition-colors"
           >
             Save Configuration
           </button>
@@ -223,22 +222,24 @@ const ServerPanel: React.FC = () => {
             <ErrorDisplay message={saveStatus.message} variant={saveStatus.variant} />
           )}
         </div>
-      ) : (
-        <div className="relative z-10 overflow-y-auto px-4 pb-4 h-screen">
-          <ErrorBoundary>
-            <DeploymentsPanel
-              githubToken={config.githubToken}
-              githubRepoOwner={config.githubRepoOwner}
-              githubRepoName={config.githubRepoName}
-              chatApiBaseUrl={config.chatApiBaseUrl}
-              modelsBaseDomain={config.modelsBaseDomain}
-              modelsUseHttps={config.modelsUseHttps}
-              showOnlyBackend={false}
-              onOpenSettings={() => setShowConfig(true)}
-            />
-          </ErrorBoundary>
-        </div>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full bg-[#0a0f14]">
+      <ErrorBoundary>
+        <ControlPanel
+          githubToken={config.githubToken}
+          githubRepoOwner={config.githubRepoOwner}
+          githubRepoName={config.githubRepoName}
+          chatApiBaseUrl={config.chatApiBaseUrl}
+          modelsBaseDomain={config.modelsBaseDomain}
+          modelsUseHttps={config.modelsUseHttps}
+          showOnlyBackend={false}
+          onOpenSettings={() => setShowConfig(true)}
+        />
+      </ErrorBoundary>
     </div>
   );
 };

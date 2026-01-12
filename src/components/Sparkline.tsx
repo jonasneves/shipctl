@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 
 interface SparklineProps {
   data: number[];
@@ -7,7 +7,7 @@ interface SparklineProps {
   className?: string;
 }
 
-const Sparkline: React.FC<SparklineProps> = ({
+const Sparkline: React.FC<SparklineProps> = memo(({
   data,
   width = 60,
   height = 20,
@@ -60,6 +60,7 @@ const Sparkline: React.FC<SparklineProps> = ({
       className={className}
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
+      aria-hidden="true"
     >
       <defs>
         <linearGradient id={`gradient-${data.length}`} x1="0%" y1="0%" x2="0%" y2="100%">
@@ -81,6 +82,6 @@ const Sparkline: React.FC<SparklineProps> = ({
       />
     </svg>
   );
-};
+});
 
 export default Sparkline;

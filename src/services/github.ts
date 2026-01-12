@@ -14,6 +14,17 @@ export interface WorkflowRun {
   html_url: string;
 }
 
+const ERROR_MESSAGES: Record<number, string> = {
+  401: 'Invalid GitHub token. Check Settings.',
+  403: 'GitHub rate limit exceeded or insufficient permissions.',
+  404: 'Repository not found. Check Settings.',
+  422: 'Invalid request. Check repository configuration.',
+};
+
+function getErrorMessage(status: number): string {
+  return ERROR_MESSAGES[status] || `GitHub API error (${status})`;
+}
+
 class GitHubService {
   private owner: string;
   private repo: string;
@@ -36,7 +47,7 @@ class GitHubService {
       { headers: this.headers }
     );
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new Error(getErrorMessage(response.status));
 
     const data = await response.json();
     return data.workflows || [];

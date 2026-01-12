@@ -28,9 +28,9 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, variant = 'error',
   const style = styles[variant];
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 ${style.bg} border ${style.border} rounded-lg ${className}`}>
+    <div className={`flex items-center gap-2 px-3 py-2.5 ${style.bg} border ${style.border} rounded-xl ${className}`}>
       {style.icon}
-      <span className={`text-[10px] ${style.text}`}>{message}</span>
+      <span className={`text-xs ${style.text}`}>{message}</span>
     </div>
   );
 };

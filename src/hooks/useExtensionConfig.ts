@@ -7,7 +7,6 @@
  * Run `python3 scripts/generate_extension_config.py` to update.
  */
 
-import { useState, useEffect } from 'react';
 import extensionConfig from '../data/extension-config.json';
 import { normalizeBaseUrl } from '../utils/url';
 
@@ -28,20 +27,10 @@ export interface WorkflowConfig {
   serviceKey?: string;
 }
 
-export interface CategoryConfig {
-  id: string;
-  name: string;
-  description: string;
-  order: number;
-}
-
 // Service definitions - GENERATED from config/models.py
 // Do not edit manually! Run: python3 scripts/generate_extension_config.py
 export const SERVICES: ServiceConfig[] = extensionConfig.services as ServiceConfig[];
 export const WORKFLOWS: WorkflowConfig[] = extensionConfig.workflows as WorkflowConfig[];
-export const CATEGORIES: CategoryConfig[] = extensionConfig.categories as CategoryConfig[];
-export const CONFIG_GENERATED_AT = extensionConfig.generatedAt;
-
 // Build workflow name -> path map for quick lookups
 export const WORKFLOW_PATHS = new Map(WORKFLOWS.map(wf => [wf.name, wf.path]));
 
@@ -49,23 +38,6 @@ export const WORKFLOW_PATHS = new Map(WORKFLOWS.map(wf => [wf.name, wf.path]));
 export const SERVICE_TO_WORKFLOW = new Map(
   WORKFLOWS.filter(wf => wf.serviceKey).map(wf => [wf.serviceKey!, wf.name])
 );
-
-// Set of model service keys for quick lookup
-export const MODEL_SERVICE_KEYS = new Set(SERVICES.map(s => s.key));
-
-// Helper to get services by category
-export function getServicesByCategory(category: string): ServiceConfig[] {
-  return SERVICES.filter(s => s.category === category).sort((a, b) => a.rank - b.rank);
-}
-
-// Helper to get all services grouped by category
-export function getServicesGroupedByCategory(): Map<string, ServiceConfig[]> {
-  const grouped = new Map<string, ServiceConfig[]>();
-  for (const category of CATEGORIES) {
-    grouped.set(category.id, getServicesByCategory(category.id));
-  }
-  return grouped;
-}
 
 export type ProfileId = 'remote_all' | 'local_chat_remote_models' | 'local_all' | 'custom';
 
@@ -142,42 +114,4 @@ export function buildEndpoint(
     return `http://localhost:${localPort}`;
   }
   return `${modelsUseHttps ? 'https' : 'http'}://${serviceKey}.${modelsBaseDomain}`;
-}
-
-function isExtensionContext(): boolean {
-  return typeof chrome !== 'undefined' && !!chrome.storage?.local;
-}
-
-export function useExtensionConfig() {
-  const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    if (isExtensionContext()) {
-      // Extension mode: load from chrome.storage
-      chrome.storage.local.get(['envConfig'], (result: { envConfig?: EnvConfig }) => {
-        const loaded = normalizeEnvConfig(result.envConfig);
-        setConfig(loaded);
-        setIsLoaded(true);
-        console.log('[Config] Extension mode loaded');
-      });
-
-      // Listen for changes from side panel
-      const listener = (changes: { envConfig?: { newValue?: EnvConfig } }, areaName: string) => {
-        if (areaName === 'local' && changes.envConfig?.newValue) {
-          const updated = normalizeEnvConfig(changes.envConfig.newValue);
-          setConfig(updated);
-          console.log('[Config] Updated');
-        }
-      };
-      chrome.storage.onChanged.addListener(listener);
-      return () => chrome.storage.onChanged.removeListener(listener);
-    } else {
-      // Web mode: use relative URLs (empty base)
-      setIsLoaded(true);
-      console.log('[Config] Web mode, using relative URLs');
-    }
-  }, []);
-
-  return { config, isLoaded };
 }

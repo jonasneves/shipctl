@@ -2,26 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: pan-x pan-y;
-  overscroll-behavior: none;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
+/* Base styles */
+* {
+  box-sizing: border-box;
 }
 
-input,
-textarea {
+html, body, #root, #sidepanel-root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #0a0f14;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+/* Disable text selection by default, enable where needed */
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, pre, code, .selectable {
   user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Smooth scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar - minimal and dark */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.4);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.6);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(71, 85, 105, 0.4) transparent;
+}
+
+/* Focus styles */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* Button reset */
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Link reset */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Input styles */
+input[type="text"],
+input[type="password"] {
+  font-family: inherit;
 }
 
 input[type="checkbox"] {
@@ -30,16 +104,16 @@ input[type="checkbox"] {
   -webkit-appearance: none;
   width: 1rem;
   height: 1rem;
-  border: 1px solid rgb(51 65 85 / 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.6);
   border-radius: 0.25rem;
-  background-color: rgb(2 6 23 / 0.6);
-  transition: all 0.2s;
+  background-color: rgba(2, 6, 23, 0.6);
+  transition: all 0.15s ease;
   position: relative;
 }
 
 input[type="checkbox"]:checked {
-  background-color: rgb(59 130 246);
-  border-color: rgb(59 130 246);
+  background-color: #3b82f6;
+  border-color: #3b82f6;
 }
 
 input[type="checkbox"]:checked::after {
@@ -54,109 +128,50 @@ input[type="checkbox"]:checked::after {
   transform: rotate(45deg);
 }
 
-input[type="checkbox"]:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px rgb(59 130 246 / 0.4);
-}
-
 input[type="checkbox"]:hover:not(:checked) {
-  border-color: rgb(100 116 139 / 0.8);
-  background-color: rgb(15 23 42 / 0.6);
+  border-color: rgba(100, 116, 139, 0.8);
+  background-color: rgba(15, 23, 42, 0.6);
 }
 
-@supports (height: 100dvh) {
-  #root {
-    width: 100%;
-    height: 100dvh;
+/* Transitions */
+.transition-fast {
+  transition: all 0.15s ease;
+}
+
+.transition-default {
+  transition: all 0.2s ease;
+}
+
+/* Animation keyframes */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
   }
 }
 
-.markdown-content {
-  user-select: text;
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Enable text selection in side panels */
-aside,
-aside * {
-  user-select: text;
+/* Utility classes */
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
 }
 
-/* Keep certain interactive elements non-selectable */
-aside button,
-aside summary {
-  user-select: none;
+/* Code/log display */
+pre, code {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
 }
 
-.markdown-content h1,
-.markdown-content h2,
-.markdown-content h3 {
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: rgb(241 245 249);
-}
-
-.markdown-content p {
-  margin: 0.5rem 0;
-}
-
-.markdown-content ul,
-.markdown-content ol {
-  margin-left: 1.25rem;
-  margin-bottom: 0.5rem;
-  list-style: revert;
-}
-
-.markdown-content blockquote {
-  margin: 0.75rem 0;
-  padding-left: 0.75rem;
-  border-left: 2px solid rgba(148, 163, 184, 0.3);
-  color: rgb(148 163 184);
-}
-
-.markdown-content a {
-  color: rgb(96 165 250);
-  text-decoration: underline;
-}
-
-.markdown-content code {
-  background: rgba(15, 23, 42, 0.6);
-  padding: 0.1rem 0.25rem;
-  border-radius: 0.25rem;
-  font-size: 0.9em;
-}
-
-.markdown-content pre {
-  background: rgba(2, 6, 23, 0.7);
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-}
-
-.markdown-content pre code {
-  background: transparent;
-  padding: 0;
-}
-
-/* Consolidated scrollbar styling */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(71, 85, 105, 0.5) rgba(30, 41, 59, 0.3);
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.3);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(71, 85, 105, 0.5);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.7);
+/* Prevent layout shift */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
