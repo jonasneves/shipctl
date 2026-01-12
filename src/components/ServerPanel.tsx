@@ -1,37 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Globe, Eye, EyeOff, Sparkles, ExternalLink } from 'lucide-react';
-import { EnvConfig, normalizeEnvConfig } from '../hooks/useExtensionConfig';
+import { AlertCircle, CheckCircle, Globe, Eye, EyeOff, Sparkles, ExternalLink, X } from 'lucide-react';
+import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG } from '../hooks/useExtensionConfig';
 import DeploymentsPanel from './DeploymentsPanel';
 import ErrorBoundary from './ErrorBoundary';
+import ErrorDisplay from './ErrorDisplay';
 import { nativeHost } from '../services/nativeHost';
 
-const DEFAULT_CONFIG: EnvConfig = {
-  githubToken: '',
-  githubRepoOwner: '',
-  githubRepoName: '',
-  profile: 'local_chat_remote_models',
-  chatApiBaseUrl: 'http://localhost:8080',
-  modelsBaseDomain: 'neevs.io',
-  modelsUseHttps: true,
-};
+const INPUT_CLASS = 'w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all';
 
 const ServerPanel: React.FC = () => {
   const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
   const [showConfig, setShowConfig] = useState(false);
   const [showToken, setShowToken] = useState(false);
-
-  const [, setBackendStatus] = useState<{ process: 'running' | 'stopped' | 'unknown'; mode: string | null }>({ process: 'unknown', mode: null });
-  const [, setActiveDeployments] = useState(0);
+  const [saveStatus, setSaveStatus] = useState<{ message: string; variant: 'error' | 'success' } | null>(null);
 
   useEffect(() => {
-    // Load saved config from chrome storage
     chrome.storage.local.get(['envConfig'], (result: { envConfig?: EnvConfig }) => {
-      const loadedConfig = normalizeEnvConfig(result.envConfig || DEFAULT_CONFIG);
+      const loadedConfig = normalizeEnvConfig(result.envConfig);
       setConfig(loadedConfig);
     });
   }, []);
 
   const saveConfig = async () => {
+    setSaveStatus(null);
     chrome.storage.local.set({ envConfig: config });
 
     try {
@@ -41,13 +32,13 @@ const ServerPanel: React.FC = () => {
       );
 
       if (response?.ok) {
-        alert('Configuration saved to .shipctl.env\n\nIf you changed Python path, run:\n./native-host/install-macos.sh');
+        setSaveStatus({ message: 'Configuration saved. If you changed Python path, run: ./native-host/install-macos.sh', variant: 'success' });
       } else {
-        alert(`Failed to save config: ${response?.error || 'Unknown error'}`);
+        setSaveStatus({ message: response?.error || 'Failed to save config', variant: 'error' });
       }
     } catch (err) {
       console.error('Failed to save config:', err);
-      alert('Failed to save config file. Make sure native host is installed.');
+      setSaveStatus({ message: 'Failed to save config file. Make sure native host is installed.', variant: 'error' });
     }
   };
 
@@ -66,7 +57,7 @@ const ServerPanel: React.FC = () => {
               className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/50"
               title="Close Settings"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 18 18" /></svg>
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -81,7 +72,7 @@ const ServerPanel: React.FC = () => {
                 type={showToken ? 'text' : 'password'}
                 value={config.githubToken}
                 onChange={(e) => setConfig({ ...config, githubToken: e.target.value })}
-                className="w-full px-3 py-2 pr-10 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                className={`${INPUT_CLASS} pr-10`}
                 placeholder="github_pat_..."
               />
               <button
@@ -125,14 +116,14 @@ const ServerPanel: React.FC = () => {
                 type="text"
                 value={config.githubRepoOwner || ''}
                 onChange={(e) => setConfig({ ...config, githubRepoOwner: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                className={INPUT_CLASS}
                 placeholder="Repository owner (e.g., jonasneves)"
               />
               <input
                 type="text"
                 value={config.githubRepoName || ''}
                 onChange={(e) => setConfig({ ...config, githubRepoName: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                className={INPUT_CLASS}
                 placeholder="Repository name (e.g., my-project)"
               />
             </div>
@@ -151,7 +142,7 @@ const ServerPanel: React.FC = () => {
               type="text"
               value={config.repoPath || ''}
               onChange={(e) => setConfig({ ...config, repoPath: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
+              className={`${INPUT_CLASS} font-mono`}
               placeholder="~/Documents/GitHub/my-project"
             />
             <p className="mt-2 text-[11px] text-slate-400">
@@ -169,7 +160,7 @@ const ServerPanel: React.FC = () => {
               type="text"
               value={config.pythonPath || ''}
               onChange={(e) => setConfig({ ...config, pythonPath: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all font-mono"
+              className={`${INPUT_CLASS} font-mono`}
               placeholder="/path/to/python"
             />
             <p className="mt-2 text-[11px] text-slate-400">
@@ -187,7 +178,7 @@ const ServerPanel: React.FC = () => {
               type="text"
               value={config.chatApiBaseUrl}
               onChange={(e) => setConfig({ ...config, profile: 'custom', chatApiBaseUrl: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              className={INPUT_CLASS}
               placeholder="http://localhost:8080"
             />
           </div>
@@ -203,7 +194,7 @@ const ServerPanel: React.FC = () => {
                 type="text"
                 value={config.modelsBaseDomain}
                 onChange={(e) => setConfig({ ...config, profile: 'custom', modelsBaseDomain: e.target.value.trim() })}
-                className="flex-1 px-3 py-2 bg-slate-900/60 border border-slate-600/40 rounded-lg text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                className={INPUT_CLASS.replace('w-full', 'flex-1')}
                 placeholder="neevs.io (or empty for localhost)"
               />
               {config.modelsBaseDomain && (
@@ -227,6 +218,10 @@ const ServerPanel: React.FC = () => {
           >
             Save Configuration
           </button>
+
+          {saveStatus && (
+            <ErrorDisplay message={saveStatus.message} variant={saveStatus.variant} />
+          )}
         </div>
       ) : (
         <div className="relative z-10 overflow-y-auto px-4 pb-4 h-screen">
@@ -238,10 +233,7 @@ const ServerPanel: React.FC = () => {
               chatApiBaseUrl={config.chatApiBaseUrl}
               modelsBaseDomain={config.modelsBaseDomain}
               modelsUseHttps={config.modelsUseHttps}
-
               showOnlyBackend={false}
-              onBackendStatusChange={setBackendStatus}
-              onActiveDeploymentsChange={setActiveDeployments}
               onOpenSettings={() => setShowConfig(true)}
             />
           </ErrorBoundary>

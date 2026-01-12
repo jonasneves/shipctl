@@ -4,7 +4,7 @@ interface WorkflowInfo {
   path: string;
 }
 
-interface WorkflowRun {
+export interface WorkflowRun {
   id: number;
   name: string;
   status: 'completed' | 'in_progress' | 'queued' | 'waiting' | 'failure';
@@ -94,4 +94,4 @@ class GitHubService {
 }
 
 export { GitHubService };
-export type { WorkflowInfo, WorkflowRun };
+export type { WorkflowInfo };

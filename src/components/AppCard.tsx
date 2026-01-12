@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { ChevronRight, ExternalLink, Rocket, Terminal } from 'lucide-react';
 import Sparkline from './Sparkline';
 import HealthBadge from './HealthBadge';
+import { STATUS_DOT_COLORS, ACCENT_COLORS, getLatencyColor, formatLatency, type ServiceStatus } from '../constants/status';
 
 interface AppCardProps {
   name: string;
-  status: 'running' | 'stopped' | 'building' | 'deploying' | 'ok' | 'down' | 'checking';
+  status: ServiceStatus;
   deploymentStatus?: 'success' | 'failure' | 'in_progress' | 'queued' | 'unknown';
   latency?: number;
   publicEndpoint: string;
@@ -19,44 +20,13 @@ interface AppCardProps {
   deployTriggering?: boolean;
 }
 
-const formatLatency = (latency?: number) => {
-  if (!latency) return null;
-  if (latency < 1000) return `${latency}ms`;
-  return `${(latency / 1000).toFixed(1)}s`;
-};
-
-const STATUS_COLORS = {
-  ok: 'bg-emerald-400',
-  running: 'bg-emerald-400',
-  down: 'bg-red-400',
-  stopped: 'bg-red-400',
-  checking: 'bg-amber-400',
-  building: 'bg-amber-400',
-  deploying: 'bg-blue-400',
-  unknown: 'bg-slate-600',
-} as const;
-
-const ACCENT_COLORS = {
-  deploying: 'border-l-blue-500',
-  healthy: 'border-l-emerald-500',
-  down: 'border-l-red-400',
-  checking: 'border-l-amber-400',
-} as const;
-
-const getLatencyColor = (latency?: number) => {
-  if (!latency) return 'text-slate-500';
-  if (latency < 500) return 'text-emerald-400';
-  if (latency < 1500) return 'text-amber-400';
-  return 'text-red-400';
-};
-
 const StatusDot: React.FC<{
-  status: 'ok' | 'down' | 'checking' | 'deploying' | 'running' | 'stopped' | 'building' | 'unknown';
+  status: ServiceStatus;
   size?: 'sm' | 'md';
   pulse?: boolean;
 }> = ({ status, size = 'sm', pulse }) => {
   const sizeClasses = size === 'sm' ? 'w-2 h-2' : 'w-3 h-3';
-  const colorClasses = STATUS_COLORS[status] || STATUS_COLORS.unknown;
+  const colorClasses = STATUS_DOT_COLORS[status] || STATUS_DOT_COLORS.unknown;
   const shouldPulse = pulse || status === 'deploying' || status === 'building';
 
   return (

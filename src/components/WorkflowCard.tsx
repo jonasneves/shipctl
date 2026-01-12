@@ -1,5 +1,6 @@
 import React from 'react';
 import { Play, ExternalLink, Clock, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { ACCENT_COLORS } from '../constants/status';
 
 interface WorkflowCardProps {
   name: string;
@@ -31,22 +32,22 @@ const STATUS_CONFIG = {
   active: {
     icon: <Loader className="w-3.5 h-3.5 text-blue-400 animate-spin" />,
     color: 'text-blue-400',
-    accent: 'border-l-blue-500',
+    accent: ACCENT_COLORS.deploying,
   },
   success: {
     icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />,
     color: 'text-emerald-400',
-    accent: 'border-l-emerald-500',
+    accent: ACCENT_COLORS.healthy,
   },
   failed: {
     icon: <XCircle className="w-3.5 h-3.5 text-red-400" />,
     color: 'text-red-400',
-    accent: 'border-l-red-400',
+    accent: ACCENT_COLORS.down,
   },
   default: {
     icon: <Clock className="w-3.5 h-3.5 text-slate-500" />,
     color: 'text-slate-500',
-    accent: 'border-l-slate-700',
+    accent: ACCENT_COLORS.default,
   },
 } as const;
 

@@ -1,9 +1,11 @@
 import React from 'react';
 import { Power, Terminal, AlertCircle, Activity } from 'lucide-react';
+import { MODEL_SERVICE_KEYS } from '../hooks/useExtensionConfig';
+import { STATUS_DOT_COLORS, STATUS_TEXT_COLORS, HEALTH_LABELS, type HealthStatus } from '../constants/status';
 
 interface ObservePanelProps {
   appId: string;
-  backendHealth: 'ok' | 'down' | 'checking';
+  backendHealth: HealthStatus;
   backendProcess: 'running' | 'stopped' | 'unknown';
   backendPid: number | null;
   backendBusy: boolean;
@@ -15,30 +17,19 @@ interface ObservePanelProps {
   onFetchLogs: () => void;
 }
 
-const HEALTH_COLORS = {
-  ok: { dot: 'bg-emerald-400', text: 'text-emerald-400' },
-  down: { dot: 'bg-red-400', text: 'text-red-400' },
-  checking: { dot: 'bg-blue-400', text: 'text-blue-400' },
-} as const;
-
-const HEALTH_LABELS = {
-  ok: 'Healthy',
-  down: 'Down',
-  checking: 'Checking',
-} as const;
-
-const HealthDisplay: React.FC<{ health: 'ok' | 'down' | 'checking'; showPid?: number | null }> = ({ health, showPid }) => {
-  const colors = HEALTH_COLORS[health];
+const HealthDisplay: React.FC<{ health: HealthStatus; showPid?: number | null }> = ({ health, showPid }) => {
+  const dotColor = STATUS_DOT_COLORS[health];
+  const textColor = STATUS_TEXT_COLORS[health];
   const label = HEALTH_LABELS[health];
   const shouldPulse = health === 'checking';
 
   return (
     <div className="flex items-center justify-between px-3 py-2 bg-slate-900/40 border border-slate-700/30 rounded-lg">
       <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${colors.dot} ${shouldPulse ? 'animate-pulse' : ''}`} />
+        <div className={`w-2 h-2 rounded-full ${dotColor} ${shouldPulse ? 'animate-pulse' : ''}`} />
         <div className="flex flex-col">
           <span className="text-[10px] text-slate-500">Health</span>
-          <span className={`text-xs font-medium ${colors.text}`}>{label}</span>
+          <span className={`text-xs font-medium ${textColor}`}>{label}</span>
         </div>
       </div>
       {showPid && (
@@ -64,7 +55,7 @@ const ObservePanel: React.FC<ObservePanelProps> = ({
   onStop,
   onFetchLogs,
 }) => {
-  const isModelApp = ['qwen', 'phi', 'llama', 'mistral', 'gemma', 'r1qwen', 'rnj'].includes(appId);
+  const isModelApp = MODEL_SERVICE_KEYS.has(appId);
 
   if (!isModelApp && appId !== 'chat-api') {
     return (

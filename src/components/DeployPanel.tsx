@@ -1,16 +1,7 @@
 import React from 'react';
 import { Rocket, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
 import { SERVICE_TO_WORKFLOW } from '../hooks/useExtensionConfig';
-
-interface WorkflowRun {
-  id: number;
-  name: string;
-  status: 'completed' | 'in_progress' | 'queued' | 'waiting' | 'failure';
-  conclusion: 'success' | 'failure' | 'cancelled' | null;
-  created_at: string;
-  updated_at: string;
-  html_url: string;
-}
+import { WorkflowRun } from '../services/github';
 
 interface DeployPanelProps {
   appId: string;

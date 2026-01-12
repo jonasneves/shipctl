@@ -50,6 +50,9 @@ export const SERVICE_TO_WORKFLOW = new Map(
   WORKFLOWS.filter(wf => wf.serviceKey).map(wf => [wf.serviceKey!, wf.name])
 );
 
+// Set of model service keys for quick lookup
+export const MODEL_SERVICE_KEYS = new Set(SERVICES.map(s => s.key));
+
 // Helper to get services by category
 export function getServicesByCategory(category: string): ServiceConfig[] {
   return SERVICES.filter(s => s.category === category).sort((a, b) => a.rank - b.rank);
@@ -78,7 +81,7 @@ export interface EnvConfig {
   pythonPath?: string;
 }
 
-const DEFAULT_CONFIG: EnvConfig = {
+export const DEFAULT_CONFIG: EnvConfig = {
   githubToken: '',
   githubRepoOwner: '',
   githubRepoName: '',

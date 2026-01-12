@@ -30,7 +30,7 @@ const BuildPanel: React.FC<BuildPanelProps> = ({
         className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white bg-slate-700/30 hover:bg-slate-700/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Package className={`w-3.5 h-3.5 text-slate-400 ${buildBusy ? 'animate-pulse' : ''}`} />
-        <span>Build Frontend</span>
+        <span>Build</span>
       </button>
 
       {buildLogTail && (
