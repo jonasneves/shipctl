@@ -63,12 +63,22 @@ function sendNativeMessage(payload) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (!message || typeof message !== 'object') return;
-  if (message.type !== 'native_backend') return;
+  console.log('[background] Received message:', message);
+  if (!message || typeof message !== 'object') {
+    console.log('[background] Invalid message format');
+    return;
+  }
+  if (message.type !== 'native_backend') {
+    console.log('[background] Message type not native_backend:', message.type);
+    return;
+  }
 
+  console.log('[background] Processing native_backend message');
   (async () => {
     const payload = message.payload || {};
+    console.log('[background] Sending to native host:', payload);
     const response = await sendNativeMessage(payload);
+    console.log('[background] Native host response:', response);
     sendResponse(response);
   })();
 

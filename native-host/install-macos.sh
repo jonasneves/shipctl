@@ -114,12 +114,30 @@ pick_dest_dir() {
 DEST_DIR="$(pick_dest_dir)"
 mkdir -p "$DEST_DIR"
 
+# IMPORTANT: On macOS, Chrome cannot execute scripts from arbitrary directories
+# due to security restrictions ("Operation not permitted").
+# We install to ~/.config/ which Chrome can access.
+INSTALL_DIR="$HOME/.config/shipctl-native-host"
+mkdir -p "$INSTALL_DIR"
+
+# Copy the Python script to the install directory
+cp "$PY" "$INSTALL_DIR/serverless_llm_native_host.py"
+chmod +x "$INSTALL_DIR/serverless_llm_native_host.py"
+
+# Create a bash wrapper (Chrome can execute bash which then runs Python)
+WRAPPER_PATH="$INSTALL_DIR/native-host-wrapper"
+cat > "$WRAPPER_PATH" <<EOF
+#!/bin/bash
+exec $PYTHON_BIN "$INSTALL_DIR/serverless_llm_native_host.py"
+EOF
+chmod +x "$WRAPPER_PATH"
+
 MANIFEST_PATH="$DEST_DIR/io.neevs.serverless_llm.json"
 cat > "$MANIFEST_PATH" <<EOF
 {
   "name": "io.neevs.serverless_llm",
   "description": "Serverless LLM native host (start/stop local backend)",
-  "path": "$PY",
+  "path": "$WRAPPER_PATH",
   "type": "stdio",
   "allowed_origins": ["chrome-extension://$EXT_ID/"]
 }
@@ -127,9 +145,14 @@ EOF
 
 echo ""
 echo "✓ Installed native host for $BROWSER"
+echo "  Install dir: $INSTALL_DIR"
 echo "  Manifest: $MANIFEST_PATH"
 echo "  Extension ID: $EXT_ID"
 echo ""
+echo "NOTE: On macOS, the native host is installed to ~/.config/shipctl-native-host/"
+echo "      to avoid Chrome security restrictions (Operation not permitted)."
+echo ""
 echo "Next steps:"
-echo "  1) Reload the extension in chrome://extensions"
-echo "  2) Open the side panel and use Backend controls"
+echo "  1) Restart Chrome completely (Cmd+Q, then reopen)"
+echo "  2) Reload the extension in chrome://extensions"
+echo "  3) Open the side panel and use Backend controls"

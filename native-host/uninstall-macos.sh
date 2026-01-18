@@ -34,6 +34,7 @@ pick_dest_dir() {
 }
 
 MANIFEST_PATH="$(pick_dest_dir)/io.neevs.serverless_llm.json"
+INSTALL_DIR="$HOME/.config/shipctl-native-host"
 
 if [[ -f "$MANIFEST_PATH" ]]; then
   rm "$MANIFEST_PATH"
@@ -43,3 +44,13 @@ else
   echo "No native host manifest found for $BROWSER"
   echo "  Expected: $MANIFEST_PATH"
 fi
+
+# Remove installed files from ~/.config/
+if [[ -d "$INSTALL_DIR" ]]; then
+  rm -rf "$INSTALL_DIR"
+  echo "✓ Removed installed native host files"
+  echo "  $INSTALL_DIR"
+fi
+
+echo ""
+echo "Restart Chrome to complete the uninstall."

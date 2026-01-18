@@ -13,10 +13,12 @@ interface StatusResponse extends NativeResponse {
 
 class NativeHost {
   private async sendMessage(payload: any): Promise<NativeResponse> {
+    console.log('[nativeHost] Sending message to background:', payload);
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(
         { type: 'native_backend', payload },
         (response) => {
+          console.log('[nativeHost] Response from background:', response, 'lastError:', chrome.runtime.lastError);
           if (chrome.runtime.lastError) {
             resolve({ ok: false, error: chrome.runtime.lastError.message });
           } else {
