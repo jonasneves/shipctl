@@ -371,29 +371,27 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         </Section>
 
         {/* Workflows */}
-        {standaloneWorkflows.length > 0 && (
-          <Section
-            title="Workflows"
-            badge={standaloneWorkflows.filter(wf => wf.run?.status === 'in_progress').length || undefined}
-            badgeColor="warning"
-            defaultOpen={false}
-          >
-            <div className="space-y-0.5">
-              {standaloneWorkflows.map(wf => (
-                <WorkflowRow
-                  key={wf.name}
-                  name={wf.name}
-                  status={wf.run?.status}
-                  conclusion={wf.run?.conclusion}
-                  htmlUrl={wf.run?.html_url || (wf.workflowInfo ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${WORKFLOW_PATHS.get(wf.name)}` : undefined)}
-                  onTrigger={() => triggerWorkflow(wf.name)}
-                  triggering={triggering === wf.name}
-                  disabled={!githubToken}
-                />
-              ))}
-            </div>
-          </Section>
-        )}
+        <Section
+          title="Workflows"
+          badge={standaloneWorkflows.filter(wf => wf.run?.status === 'in_progress').length || undefined}
+          badgeColor="warning"
+          defaultOpen={false}
+        >
+          <div className="space-y-0.5">
+            {standaloneWorkflows.map(wf => (
+              <WorkflowRow
+                key={wf.name}
+                name={wf.name}
+                status={wf.run?.status}
+                conclusion={wf.run?.conclusion}
+                htmlUrl={wf.run?.html_url || (wf.workflowInfo ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${WORKFLOW_PATHS.get(wf.name)}` : undefined)}
+                onTrigger={() => triggerWorkflow(wf.name)}
+                triggering={triggering === wf.name}
+                disabled={!githubToken}
+              />
+            ))}
+          </div>
+        </Section>
 
         {/* Config hint */}
         {!githubToken && (
