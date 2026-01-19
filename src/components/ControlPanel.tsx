@@ -46,6 +46,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const refreshInFlight = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const addToast = useCallback((type: 'success' | 'error', message: string) => {
     setToasts(prev => [...prev, { id: crypto.randomUUID(), type, message }]);
@@ -148,6 +149,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       }
       if (e.key === 'Escape' && selectedService) {
         setSelectedService(null);
+      }
+      // Focus search on printable character
+      if (e.key.length === 1 && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        searchInputRef.current?.focus();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -367,8 +372,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     <div className="flex flex-col h-full bg-[#0a0f14]">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {/* Health Ring - fixed header */}
-      <div className="px-3 pt-3 pb-2">
+      {/* Fixed header */}
+      <div className="p-3 space-y-3">
         <HealthRing
           online={stats.online}
           down={stats.down}
@@ -387,22 +392,22 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           actionsDisabled={!githubToken}
           githubActionsUrl={githubActionsUrl}
         />
-      </div>
-
-      {/* Scrollable content */}
-      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-3">
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filter services..."
-            className="w-full pl-10 pr-4 py-2.5 bg-[#0f1419] border border-[#1e2832] rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500/50 transition-all"
+            autoComplete="off"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#0f1419] border border-[#1e2832] rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500/50 transition-colors"
           />
         </div>
+      </div>
 
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-3">
         {/* GitHub auth prompt */}
         {!githubToken && onConnectGitHub && (
           <button
