@@ -8,7 +8,7 @@ import ServiceRow from './ServiceRow';
 import ServiceDetail from './ServiceDetail';
 import WorkflowRow from './WorkflowRow';
 import ErrorDisplay from './ErrorDisplay';
-import { SERVICES, WORKFLOWS, WORKFLOW_PATHS, SERVICE_TO_WORKFLOW } from '../hooks/useExtensionConfig';
+import { SERVICES, WORKFLOWS, WORKFLOW_PATHS, SERVICE_TO_WORKFLOW, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
 import { useHealthMonitoring } from '../hooks/useHealthMonitoring';
 import { useBackendControl } from '../hooks/useBackendControl';
 import { useWorkflowOrchestration } from '../hooks/useWorkflowOrchestration';
@@ -192,8 +192,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   };
 
   // URL helpers
-  const publicDomain = modelsBaseDomain || 'neevs.io';
-  const publicScheme = modelsBaseDomain ? (modelsUseHttps ? 'https' : 'http') : 'https';
+  const publicDomain = modelsBaseDomain || REGISTRY_CONFIG.domain.base;
+  const publicScheme = modelsBaseDomain ? (modelsUseHttps ? 'https' : 'http') : (REGISTRY_CONFIG.domain.useHttps ? 'https' : 'http');
   const chatPublicUrl = (chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1'))
     ? `${publicScheme}://chat.${publicDomain}`
     : (normalizeBaseUrl(chatApiBaseUrl) || `${publicScheme}://chat.${publicDomain}`);

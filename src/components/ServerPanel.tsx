@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Globe, AlertCircle, CheckCircle, LogOut, Github, ChevronDown } from 'lucide-react';
-import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG } from '../hooks/useExtensionConfig';
+import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
 import ControlPanel from './ControlPanel';
 import ErrorBoundary from './ErrorBoundary';
 import ErrorDisplay from './ErrorDisplay';
@@ -317,7 +317,7 @@ const ServerPanel: React.FC = () => {
                 value={config.modelsBaseDomain}
                 onChange={(e) => setConfig({ ...config, profile: 'custom', modelsBaseDomain: e.target.value.trim() })}
                 className={inputClass}
-                placeholder="neevs.io"
+                placeholder={REGISTRY_CONFIG.domain.base}
               />
               {config.modelsBaseDomain && (
                 <label className="flex items-center gap-2 px-3 py-2 bg-[#0a0f14] border border-[#2a3544] rounded-xl text-xs text-slate-400 cursor-pointer hover:border-slate-500 transition-colors">

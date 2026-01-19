@@ -10,6 +10,21 @@
 import extensionConfig from '../data/extension-config.json';
 import { normalizeBaseUrl } from '../utils/url';
 
+// Registry config from apps.json
+export interface RegistryConfig {
+  github: { owner: string; repo: string };
+  domain: { base: string; useHttps: boolean };
+  chatApi: { localPort: number; healthPath: string };
+  nativeHost: { name: string };
+}
+
+export const REGISTRY_CONFIG: RegistryConfig = (extensionConfig as any).config || {
+  github: { owner: '', repo: '' },
+  domain: { base: 'neevs.io', useHttps: true },
+  chatApi: { localPort: 8080, healthPath: '/health' },
+  nativeHost: { name: 'io.neevs.serverless_llm' }
+};
+
 // Types for generated config
 export interface ServiceConfig {
   key: string;
@@ -56,12 +71,12 @@ export interface EnvConfig {
 
 export const DEFAULT_CONFIG: EnvConfig = {
   githubToken: '',
-  githubRepoOwner: '',
-  githubRepoName: '',
+  githubRepoOwner: REGISTRY_CONFIG.github.owner,
+  githubRepoName: REGISTRY_CONFIG.github.repo,
   profile: 'local_all',
-  chatApiBaseUrl: 'http://localhost:8080',
-  modelsBaseDomain: '',
-  modelsUseHttps: false,
+  chatApiBaseUrl: `http://localhost:${REGISTRY_CONFIG.chatApi.localPort}`,
+  modelsBaseDomain: REGISTRY_CONFIG.domain.base,
+  modelsUseHttps: REGISTRY_CONFIG.domain.useHttps,
 };
 
 export function normalizeEnvConfig(raw: unknown): EnvConfig {
