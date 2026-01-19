@@ -7,6 +7,7 @@ interface WorkflowInfo {
 export interface WorkflowRun {
   id: number;
   name: string;
+  display_title: string;
   status: 'completed' | 'in_progress' | 'queued' | 'waiting' | 'failure';
   conclusion: 'success' | 'failure' | 'cancelled' | null;
   created_at: string;
@@ -51,6 +52,30 @@ class GitHubService {
 
     const data = await response.json();
     return data.workflows || [];
+  }
+
+  async getActiveRuns(workflowId: number): Promise<WorkflowRun[]> {
+    const response = await fetch(
+      `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows/${workflowId}/runs?per_page=20`,
+      { headers: this.headers }
+    );
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    const runs = data.workflow_runs || [];
+
+    // Return all active runs (in_progress, queued) plus the most recent completed one
+    const active = runs.filter((run: any) =>
+      run.status === 'in_progress' || run.status === 'queued'
+    );
+
+    // If no active runs, include the most recent run to show last status
+    if (active.length === 0 && runs.length > 0) {
+      return [runs[0]];
+    }
+
+    return active;
   }
 
   async getLatestRun(

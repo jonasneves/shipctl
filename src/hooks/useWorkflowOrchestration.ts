@@ -23,6 +23,8 @@ export function useWorkflowOrchestration({
 }: UseWorkflowOrchestrationProps) {
   const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
   const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
+  // For standalone workflows: store all active runs keyed by workflow name
+  const [standaloneRuns, setStandaloneRuns] = useState<Map<string, WorkflowRun[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [triggering, setTriggering] = useState<string | null>(null);
@@ -68,21 +70,37 @@ export function useWorkflowOrchestration({
     if (!githubToken || workflows.size === 0) return;
 
     const newRuns = new Map<string, WorkflowRun | null>();
+    const newStandaloneRuns = new Map<string, WorkflowRun[]>();
     let activeCount = 0;
 
     for (const [name, wf] of workflows) {
       try {
         const workflowConfig = WORKFLOWS.find(w => w.name === name);
-        const filterByModel = workflowConfig?.serviceKey;
-        const run = await github.getLatestRun(wf.id, filterByModel);
-        newRuns.set(name, run);
-        if (run?.status === 'in_progress' || run?.status === 'queued') activeCount++;
+        const isServiceWorkflow = !!workflowConfig?.serviceKey;
+
+        if (isServiceWorkflow) {
+          // Service workflows: get latest run filtered by model
+          const run = await github.getLatestRun(wf.id, workflowConfig.serviceKey);
+          newRuns.set(name, run);
+          if (run?.status === 'in_progress' || run?.status === 'queued') activeCount++;
+        } else {
+          // Standalone workflows: get all active runs
+          const activeRunsList = await github.getActiveRuns(wf.id);
+          newStandaloneRuns.set(name, activeRunsList);
+          // Also set the first run in runs map for backwards compatibility
+          newRuns.set(name, activeRunsList[0] || null);
+          activeCount += activeRunsList.filter(r =>
+            r.status === 'in_progress' || r.status === 'queued'
+          ).length;
+        }
       } catch {
         newRuns.set(name, null);
+        newStandaloneRuns.set(name, []);
       }
     }
 
     setRuns(newRuns);
+    setStandaloneRuns(newStandaloneRuns);
     onActiveDeploymentsChange?.(activeCount);
     setLoading(false);
   }, [githubToken, github, workflows, onActiveDeploymentsChange]);
@@ -205,6 +223,7 @@ export function useWorkflowOrchestration({
   return {
     workflows,
     runs,
+    standaloneRuns,
     loading,
     error,
     triggering,

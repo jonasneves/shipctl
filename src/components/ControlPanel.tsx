@@ -104,6 +104,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const {
     workflows,
     runs,
+    standaloneRuns,
     loading,
     error,
     triggering,
@@ -197,12 +198,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   // - queued = service is starting up
   // - recentlyTriggered = user just clicked Start, show "starting" immediately
   const getWorkflowStatusForService = (appId: string): 'running' | 'stopped' | 'failed' | 'starting' | 'unknown' => {
-    // chat-api maps to 'Chat' workflow (not in generated SERVICE_TO_WORKFLOW)
-    const workflowName = appId === 'chat-api' ? 'Chat' : SERVICE_TO_WORKFLOW.get(appId) || null;
+    const workflowName = SERVICE_TO_WORKFLOW.get(appId);
     if (!workflowName) return 'unknown';
 
-    // If we just triggered this workflow, show "starting" immediately
-    // (before the API poll catches the queued run)
     if (recentlyTriggered.has(workflowName)) return 'starting';
 
     const run = runs.get(workflowName);
@@ -220,38 +218,48 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const chatPublicUrl = (chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1'))
     ? `${publicScheme}://chat.${publicDomain}`
     : (normalizeBaseUrl(chatApiBaseUrl) || `${publicScheme}://chat.${publicDomain}`);
+  const isLocalChat = chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1');
 
   // Map health status to service status
   const healthToStatus = (status: 'ok' | 'down' | 'checking') =>
     status === 'ok' ? 'running' as const :
     status === 'down' ? 'stopped' as const : 'checking' as const;
 
-  // Build service data
-  const buildService = (appId: string, name: string, isChatApi = false) => {
-    const health = isChatApi ? backendHealth : (modelHealthStatuses.get(appId) || { status: 'checking' as const });
-    const endpoint = isChatApi ? 'chat' : appId;
+  // Build chat-api service data
+  const chatApiService = useMemo(() => ({
+    id: 'chat-api',
+    name: 'Chat API',
+    status: healthToStatus(backendHealth.status),
+    workflowStatus: 'unknown' as const, // Will be derived from standaloneRuns
+    latency: backendHealth.latency,
+    publicEndpoint: `chat.${publicDomain}`,
+    endpointUrl: chatPublicUrl,
+  }), [backendHealth, publicDomain, chatPublicUrl]);
+
+  // Build service data for model services
+  const buildService = (appId: string, name: string) => {
+    const health = modelHealthStatuses.get(appId) || { status: 'checking' as const };
     return {
-      id: isChatApi ? 'chat-api' : appId,
-      name: isChatApi ? 'Chat API' : name,
+      id: appId,
+      name,
       status: healthToStatus(health.status),
-      workflowStatus: getWorkflowStatusForService(isChatApi ? 'chat-api' : appId),
+      workflowStatus: getWorkflowStatusForService(appId),
       latency: health.latency,
-      publicEndpoint: `${endpoint}.${publicDomain}`,
-      endpointUrl: isChatApi ? chatPublicUrl : `${publicScheme}://${appId}.${publicDomain}`,
+      publicEndpoint: `${appId}.${publicDomain}`,
+      endpointUrl: `${publicScheme}://${appId}.${publicDomain}`,
     };
   };
 
-  const allServices = useMemo(() => [
-    buildService('chat-api', 'Chat API', true),
-    ...SERVICES.map(service => buildService(service.key, service.name))
-  ], [backendHealth, modelHealthStatuses, runs, recentlyTriggered]);
+  const allServices = useMemo(() =>
+    SERVICES.map(service => buildService(service.key, service.name))
+  , [modelHealthStatuses, runs, recentlyTriggered]);
 
   // Group workflows by path to create sections
   const workflowSections = useMemo(() => {
     const sectionMap = new Map<string, {
       name: string;
       services: typeof allServices;
-      standaloneWorkflows: { name: string; workflowInfo: any; run: any }[];
+      standaloneWorkflows: { name: string; workflowName: string; workflowInfo: any; run: any }[];
     }>();
 
     // Group workflows by path
@@ -267,16 +275,40 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         const service = allServices.find(s => s.id === wf.serviceKey);
         if (service) section.services.push(service);
       } else if (wf.name === 'Chat') {
-        // Chat workflow maps to chat-api service (not in generated config)
-        const chatService = allServices.find(s => s.id === 'chat-api');
-        if (chatService) section.services.push(chatService);
+        // Chat workflow: show each active run as a service row (clickable for controls)
+        const activeRunsList = standaloneRuns.get(wf.name) || [];
+        if (activeRunsList.length > 0) {
+          for (const run of activeRunsList) {
+            section.services.push({
+              ...chatApiService,
+              name: run.display_title || 'Chat API',
+            });
+          }
+        } else {
+          // No active runs - show default chat-api service
+          section.services.push(chatApiService);
+        }
       } else {
-        // Standalone workflow
-        section.standaloneWorkflows.push({
-          name: wf.name,
-          workflowInfo: workflows.get(wf.name),
-          run: runs.get(wf.name),
-        });
+        // Standalone workflow - show all active runs as separate rows
+        const activeRunsList = standaloneRuns.get(wf.name) || [];
+        if (activeRunsList.length > 0) {
+          for (const run of activeRunsList) {
+            section.standaloneWorkflows.push({
+              name: run.display_title || wf.name,
+              workflowName: wf.name,
+              workflowInfo: workflows.get(wf.name),
+              run,
+            });
+          }
+        } else {
+          // No runs - show workflow with no status
+          section.standaloneWorkflows.push({
+            name: wf.name,
+            workflowName: wf.name,
+            workflowInfo: workflows.get(wf.name),
+            run: null,
+          });
+        }
       }
     }
 
@@ -305,7 +337,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     }
 
     return sectionMap;
-  }, [allServices, workflows, runs, searchQuery]);
+  }, [allServices, chatApiService, workflows, runs, standaloneRuns, searchQuery]);
 
   // GitHub Actions URL
   const githubActionsUrl = githubRepoOwner && githubRepoName
@@ -315,19 +347,17 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   // Build workflow name (for HealthRing actions)
   const buildWorkflowName = BUILD_WORKFLOW?.name;
 
-  // Is local chat mode
-  const isLocalChat = chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1');
-
   // If a service is selected, show detail view
   if (selectedService) {
-    const service = allServices.find(s => s.id === selectedService);
+    const isChatApi = selectedService === 'chat-api';
+    const service = isChatApi ? chatApiService : allServices.find(s => s.id === selectedService);
     if (service) {
-      const workflowName = service.id === 'chat-api' ? 'Chat' : SERVICE_TO_WORKFLOW.get(service.id);
+      const workflowName = isChatApi ? 'Chat' : SERVICE_TO_WORKFLOW.get(service.id);
       const lastRun = workflowName ? runs.get(workflowName) : null;
 
       // Get local endpoint for this service
       const serviceConfig = SERVICES.find(s => s.key === service.id);
-      const localPort = service.id === 'chat-api' ? 8080 : serviceConfig?.localPort;
+      const localPort = isChatApi ? 8080 : serviceConfig?.localPort;
       const localEndpoint = localPort ? `localhost:${localPort}` : undefined;
       const localEndpointUrl = localPort ? `http://localhost:${localPort}` : undefined;
 
@@ -336,7 +366,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           name={service.name}
           status={service.status}
           latency={service.latency}
-          latencyHistory={service.id === 'chat-api' ? backendHealthHistory : modelHealthHistory.get(service.id) || []}
+          latencyHistory={isChatApi ? backendHealthHistory : modelHealthHistory.get(service.id) || []}
           publicEndpoint={service.publicEndpoint}
           endpointUrl={service.endpointUrl}
           localEndpoint={localEndpoint}
@@ -349,14 +379,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           cloudTriggering={triggering === workflowName}
           cloudStopping={triggering === `stopping:${workflowName}`}
           cloudBuilding={triggering === buildWorkflowName}
-          onBuild={service.id === 'chat-api' ? () => runBuild('playground') : undefined}
+          onBuild={isChatApi ? () => runBuild('playground') : undefined}
           buildBusy={buildBusy}
           buildLogTail={buildLogTail}
           backendProcess={backendProcess}
           backendPid={backendPid}
           backendBusy={backendBusy}
           backendLogTail={backendLogTail}
-          isLocalChat={isLocalChat && service.id === 'chat-api'}
+          isLocalChat={isLocalChat && isChatApi}
           onStart={startBackend}
           onStop={stopBackend}
           onRestart={restartBackend}
@@ -453,13 +483,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                 ))}
                 {section.standaloneWorkflows.map(wf => (
                   <WorkflowRow
-                    key={wf.name}
+                    key={wf.run?.id || wf.workflowName}
                     name={wf.name}
                     status={wf.run?.status}
                     conclusion={wf.run?.conclusion}
                     htmlUrl={wf.run?.html_url || (wf.workflowInfo ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${sectionName}.yml` : undefined)}
-                    onTrigger={() => triggerWorkflow(wf.name)}
-                    triggering={triggering === wf.name}
+                    onTrigger={() => triggerWorkflow(wf.workflowName)}
+                    triggering={triggering === wf.workflowName}
                     disabled={!githubToken}
                   />
                 ))}
