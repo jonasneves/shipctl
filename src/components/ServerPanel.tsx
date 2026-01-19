@@ -95,6 +95,7 @@ const ServerPanel: React.FC = () => {
       } else {
         setConfig(prev => ({ ...prev, githubToken: response.access_token, githubUsername: response.username }));
         setOauthStatus({ message: `Connected as ${response.username}`, variant: 'success' });
+        setTimeout(() => setOauthStatus(null), 3000);
       }
     } catch {
       setOauthStatus({ message: 'OAuth failed. Try again.', variant: 'error' });
@@ -107,6 +108,7 @@ const ServerPanel: React.FC = () => {
     setConfig(prev => ({ ...prev, githubToken: '', githubUsername: undefined }));
     setRepos([]);
     setOauthStatus({ message: 'Disconnected from GitHub', variant: 'success' });
+    setTimeout(() => setOauthStatus(null), 3000);
   };
 
   const handleRepoSelect = (repo: GitHubRepo) => {

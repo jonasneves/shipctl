@@ -1,16 +1,13 @@
 import { useState, useCallback, useMemo } from 'react';
 import { SERVICES, buildEndpoint } from './useExtensionConfig';
 import { healthChecker, type HealthStatus } from '../services/healthCheck';
-import { normalizeBaseUrl } from '../utils/url';
 
 interface UseHealthMonitoringProps {
-  chatApiBaseUrl: string;
   modelsBaseDomain: string;
   modelsUseHttps: boolean;
 }
 
 export function useHealthMonitoring({
-  chatApiBaseUrl,
   modelsBaseDomain,
   modelsUseHttps,
 }: UseHealthMonitoringProps) {
@@ -21,7 +18,8 @@ export function useHealthMonitoring({
 
   const checkBackendHealth = useCallback(async () => {
     setBackendHealth({ status: 'checking' });
-    const baseUrl = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
+    // Use same pattern as models: https://chat.{domain}
+    const baseUrl = buildEndpoint('chat', 8080, modelsBaseDomain, modelsUseHttps);
     const status = await healthChecker.check(baseUrl, 5000);
     setBackendHealth(status);
 
@@ -29,7 +27,7 @@ export function useHealthMonitoring({
       const latency = status.latency || 0;
       return [...prev, latency].slice(-10);
     });
-  }, [chatApiBaseUrl]);
+  }, [modelsBaseDomain, modelsUseHttps]);
 
   const checkAllModelsHealth = useCallback(async () => {
     // Set all to checking in one batch

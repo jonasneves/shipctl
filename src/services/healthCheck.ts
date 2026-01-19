@@ -13,24 +13,24 @@ class HealthChecker {
     }
 
     this.checking.add(url);
-    const start = Date.now();
 
     try {
-      const response = await fetch(`${url}/health`, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-        signal: AbortSignal.timeout(timeout),
+      // Use background script to bypass CORS
+      console.log('[healthCheck] Requesting:', url);
+      const response = await chrome.runtime.sendMessage({
+        type: 'HEALTH_CHECK',
+        url,
+        timeout,
       });
-
-      const latency = Date.now() - start;
+      console.log('[healthCheck] Response:', url, response);
       const status: HealthStatus = {
-        status: response.ok ? 'ok' : 'down',
-        latency,
+        status: response?.status === 'ok' ? 'ok' : 'down',
+        latency: response?.latency,
       };
       this.cache.set(url, status);
       return status;
-    } catch {
+    } catch (err) {
+      console.log('[healthCheck] Error:', url, err);
       const status: HealthStatus = { status: 'down' };
       this.cache.set(url, status);
       return status;

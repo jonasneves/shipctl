@@ -54,7 +54,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     checkBackendHealth,
     checkAllModelsHealth,
     stats: healthStats,
-  } = useHealthMonitoring({ chatApiBaseUrl, modelsBaseDomain, modelsUseHttps });
+  } = useHealthMonitoring({ modelsBaseDomain, modelsUseHttps });
 
   // Backend control hook
   const {
@@ -158,10 +158,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     if (showOnlyBackend) return;
     const interval = setInterval(() => {
       if (!refreshInFlight.current) fetchLatestRuns();
+      checkBackendHealth();
       checkAllModelsHealth();
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchLatestRuns, showOnlyBackend, checkAllModelsHealth]);
+  }, [fetchLatestRuns, showOnlyBackend, checkBackendHealth, checkAllModelsHealth]);
 
   // Stats
   const stats = useMemo(() => ({

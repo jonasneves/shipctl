@@ -6,7 +6,6 @@ import {
   Power,
   Terminal,
   Package,
-  Activity,
   CheckCircle,
   XCircle,
   Loader2,
@@ -77,19 +76,6 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
   const isStarting = workflowStatus === 'starting';
   const showLocalSection = onBuild || isLocalChat;
 
-  // Status display - combines health check status with workflow status
-  const getStatusInfo = () => {
-    // Workflow stopped/failed takes priority (service is down even if last health check succeeded)
-    if (workflowStatus === 'stopped') return { label: 'Stopped', color: 'text-red-400', bg: 'bg-red-500/10' };
-    if (workflowStatus === 'failed') return { label: 'Failed', color: 'text-red-400', bg: 'bg-red-500/10' };
-    if (isStarting) return { label: 'Starting', color: 'text-blue-400', bg: 'bg-blue-500/10' };
-    if (isHealthy) return { label: 'Healthy', color: 'text-emerald-400', bg: 'bg-emerald-500/10' };
-    if (isDown) return { label: 'Down', color: 'text-red-400', bg: 'bg-red-500/10' };
-    return { label: 'Checking', color: 'text-amber-400', bg: 'bg-amber-500/10' };
-  };
-
-  const statusInfo = getStatusInfo();
-
   // Format latency
   const formatLatency = (ms?: number) => {
     if (!ms) return '--';
@@ -158,35 +144,6 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-4">
-          {/* Status Card */}
-          <div className={`p-4 rounded-xl ${statusInfo.bg} border border-[#1e2832]`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className={`text-lg font-semibold ${statusInfo.color}`}>
-                  {statusInfo.label}
-                </div>
-                {isHealthy && latency && (
-                  <div className="text-sm text-slate-400 mt-0.5">
-                    {formatLatency(latency)} response time
-                  </div>
-                )}
-              </div>
-              {backendPid && backendProcess === 'running' && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                  <Activity className="w-3.5 h-3.5" />
-                  PID {backendPid}
-                </div>
-              )}
-            </div>
-
-            {/* Latency sparkline */}
-            {latencyHistory.length > 1 && isHealthy && (
-              <div className="mt-4">
-                <Sparkline data={latencyHistory} width={280} height={40} />
-              </div>
-            )}
-          </div>
-
           {/* Cloud Section - Start/Restart service via GitHub Actions */}
           {onStartCloud && (
             <div className="space-y-2">
@@ -199,6 +156,49 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                   <span className="text-[10px] text-slate-600 font-mono">{publicEndpoint}</span>
                 )}
               </div>
+
+              {/* Cloud status banner */}
+              <div className={`p-3 rounded-xl border border-[#1e2832] ${
+                isHealthy ? 'bg-emerald-500/10' :
+                isStarting ? 'bg-blue-500/10' :
+                isDown || workflowStatus === 'stopped' || workflowStatus === 'failed' ? 'bg-red-500/10' :
+                'bg-slate-500/10'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      isHealthy ? 'bg-emerald-400' :
+                      isStarting ? 'bg-blue-400 animate-pulse' :
+                      isDown || workflowStatus === 'stopped' || workflowStatus === 'failed' ? 'bg-red-400' :
+                      'bg-slate-400'
+                    }`} />
+                    <span className={`text-sm font-medium ${
+                      isHealthy ? 'text-emerald-400' :
+                      isStarting ? 'text-blue-400' :
+                      isDown || workflowStatus === 'stopped' || workflowStatus === 'failed' ? 'text-red-400' :
+                      'text-slate-400'
+                    }`}>
+                      {isHealthy ? 'Healthy' :
+                       isStarting ? 'Starting...' :
+                       workflowStatus === 'stopped' ? 'Stopped' :
+                       workflowStatus === 'failed' ? 'Failed' :
+                       isDown ? 'Down' :
+                       'Checking...'}
+                    </span>
+                  </div>
+                  {isHealthy && latency && (
+                    <span className="text-xs text-slate-400 font-mono">
+                      {formatLatency(latency)}
+                    </span>
+                  )}
+                </div>
+                {latencyHistory.length > 1 && isHealthy && (
+                  <div className="mt-2">
+                    <Sparkline data={latencyHistory} width={260} height={32} />
+                  </div>
+                )}
+              </div>
+
               {/* Show Start when not running, Restart when running */}
               {workflowStatus === 'running' ? (
                 <button
@@ -276,6 +276,38 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                   <span className="text-[10px] text-slate-600 font-mono">{localEndpoint}</span>
                 )}
               </div>
+
+              {/* Local status banner */}
+              {isLocalChat && (
+                <div className={`p-3 rounded-xl border border-[#1e2832] ${
+                  backendProcess === 'running' ? 'bg-emerald-500/10' :
+                  backendProcess === 'stopped' ? 'bg-slate-500/10' :
+                  'bg-slate-500/10'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        backendProcess === 'running' ? 'bg-emerald-400' :
+                        backendProcess === 'stopped' ? 'bg-slate-400' :
+                        'bg-slate-400'
+                      }`} />
+                      <span className={`text-sm font-medium ${
+                        backendProcess === 'running' ? 'text-emerald-400' :
+                        'text-slate-400'
+                      }`}>
+                        {backendProcess === 'running' ? 'Running' :
+                         backendProcess === 'stopped' ? 'Stopped' :
+                         'Unknown'}
+                      </span>
+                    </div>
+                    {backendPid && backendProcess === 'running' && (
+                      <span className="text-xs text-slate-500 font-mono">
+                        PID {backendPid}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Build button */}
               {onBuild && (

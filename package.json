@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "npm run sync && vite",
+    "build": "npm run sync && tsc && vite build --config vite.config.extension.ts",
     "build:local": "tsc && vite build --base=/ --outDir dist",
     "fetch-models": "node scripts/fetch-models.mjs",
     "sync": "node scripts/sync-apps.js",
