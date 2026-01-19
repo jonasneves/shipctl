@@ -22,14 +22,14 @@ const Toast: React.FC<ToastProps> = ({ toast, onDismiss }) => {
     <div
       className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border shadow-lg animate-in slide-in-from-top-2 ${
         toast.type === 'success'
-          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-          : 'bg-red-500/10 border-red-500/20 text-red-400'
+          ? 'bg-emerald-950 border-emerald-800 text-emerald-200'
+          : 'bg-red-950 border-red-800 text-red-200'
       }`}
     >
       {toast.type === 'success' ? (
-        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+        <CheckCircle className="w-4 h-4 flex-shrink-0 text-emerald-400" />
       ) : (
-        <XCircle className="w-4 h-4 flex-shrink-0" />
+        <XCircle className="w-4 h-4 flex-shrink-0 text-red-400" />
       )}
       <span className="text-sm flex-1">{toast.message}</span>
       <button

@@ -12,15 +12,15 @@ const ErrorDisplay: React.FC<ErrorDisplayProps> = ({ message, variant = 'error',
 
   const styles = {
     error: {
-      bg: 'bg-amber-500/10',
-      border: 'border-amber-500/20',
-      text: 'text-amber-300',
-      icon: <AlertCircle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />,
+      bg: 'bg-red-950',
+      border: 'border-red-800',
+      text: 'text-red-200',
+      icon: <AlertCircle className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />,
     },
     success: {
-      bg: 'bg-emerald-500/10',
-      border: 'border-emerald-500/20',
-      text: 'text-emerald-300',
+      bg: 'bg-emerald-950',
+      border: 'border-emerald-800',
+      text: 'text-emerald-200',
       icon: <CheckCircle className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />,
     },
   };

@@ -387,7 +387,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           actionsDisabled={!githubToken}
           githubActionsUrl={githubActionsUrl}
         />
+      </div>
 
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-3">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />

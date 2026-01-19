@@ -85,7 +85,7 @@ class GitHubService {
   async triggerWorkflow(
     workflowIdentifier: number | string,
     inputs?: Record<string, string>
-  ): Promise<boolean> {
+  ): Promise<void> {
     const body: any = { ref: 'main' };
     if (inputs) {
       body.inputs = inputs;
@@ -100,10 +100,12 @@ class GitHubService {
       }
     );
 
-    return response.status === 204;
+    if (response.status !== 204) {
+      throw new Error(getErrorMessage(response.status));
+    }
   }
 
-  async cancelRun(runId: number): Promise<boolean> {
+  async cancelRun(runId: number): Promise<void> {
     const response = await fetch(
       `https://api.github.com/repos/${this.owner}/${this.repo}/actions/runs/${runId}/cancel`,
       {
@@ -112,7 +114,9 @@ class GitHubService {
       }
     );
 
-    return response.status === 202;
+    if (response.status !== 202) {
+      throw new Error(getErrorMessage(response.status));
+    }
   }
 }
 

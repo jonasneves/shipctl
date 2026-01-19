@@ -68,14 +68,11 @@ function sendNativeMessage(payload) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  console.log('[background] Received message:', message);
-  if (!message || typeof message !== 'object') {
-    console.log('[background] Invalid message format');
-    return;
-  }
+  if (!message || typeof message !== 'object') return;
 
   if (message.type === 'GITHUB_OAUTH') {
     handleGitHubOAuth().then(sendResponse).catch(err => {
+      console.error('[background] OAuth error:', err.message);
       sendResponse({ error: err.message });
     });
     return true;
@@ -86,17 +83,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
-  if (message.type !== 'native_backend') {
-    console.log('[background] Message type not native_backend:', message.type);
-    return;
-  }
+  if (message.type !== 'native_backend') return;
 
-  console.log('[background] Processing native_backend message');
   (async () => {
     const payload = message.payload || {};
-    console.log('[background] Sending to native host:', payload);
     const response = await sendNativeMessage(payload);
-    console.log('[background] Native host response:', response);
+    if (!response.ok) console.error('[background] Native host error:', response.error);
     sendResponse(response);
   })();
 

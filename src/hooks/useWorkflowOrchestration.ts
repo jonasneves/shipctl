@@ -103,29 +103,23 @@ export function useWorkflowOrchestration({
         ? { model: workflowConfig.serviceKey }
         : undefined;
 
-      const success = await github.triggerWorkflow(workflowIdentifier!, inputs);
+      await github.triggerWorkflow(workflowIdentifier!, inputs);
 
-      if (success) {
-        // Mark as recently triggered for immediate "starting" feedback
-        setRecentlyTriggered(prev => new Set(prev).add(workflowName));
-        onTriggerSuccess?.(workflowName);
+      // Mark as recently triggered for immediate "starting" feedback
+      setRecentlyTriggered(prev => new Set(prev).add(workflowName));
+      onTriggerSuccess?.(workflowName);
 
-        // Aggressive refresh polling at 3s, 6s, 10s
-        [3000, 6000, 10000].forEach(ms => setTimeout(() => onRefresh?.(), ms));
+      // Aggressive refresh polling at 3s, 6s, 10s
+      [3000, 6000, 10000].forEach(ms => setTimeout(() => onRefresh?.(), ms));
 
-        // Clear from recentlyTriggered after 15s
-        setTimeout(() => {
-          setRecentlyTriggered(prev => {
-            const next = new Set(prev);
-            next.delete(workflowName);
-            return next;
-          });
-        }, 15000);
-      } else {
-        const errorMsg = `Failed to trigger ${workflowName}`;
-        setError(errorMsg);
-        onTriggerError?.(workflowName, errorMsg);
-      }
+      // Clear from recentlyTriggered after 15s
+      setTimeout(() => {
+        setRecentlyTriggered(prev => {
+          const next = new Set(prev);
+          next.delete(workflowName);
+          return next;
+        });
+      }, 15000);
     } catch (err: any) {
       setError(err.message);
       onTriggerError?.(workflowName, err.message);
@@ -156,13 +150,9 @@ export function useWorkflowOrchestration({
     let stopped = 0;
     for (const { name, run } of runningRuns) {
       try {
-        const success = await github.cancelRun(run.id);
-        if (success) {
-          onTriggerSuccess?.(`${name} stopped`);
-          stopped++;
-        } else {
-          onTriggerError?.(name, 'Failed to cancel');
-        }
+        await github.cancelRun(run.id);
+        onTriggerSuccess?.(`${name} stopped`);
+        stopped++;
       } catch (err: any) {
         onTriggerError?.(name, err.message);
       }
@@ -182,13 +172,9 @@ export function useWorkflowOrchestration({
 
     setTriggering(`stopping:${workflowName}`);
     try {
-      const success = await github.cancelRun(run.id);
-      if (success) {
-        onTriggerSuccess?.(`${workflowName} stopped`);
-        setTimeout(() => onRefresh?.(), 2000);
-      } else {
-        onTriggerError?.(workflowName, 'Failed to cancel workflow');
-      }
+      await github.cancelRun(run.id);
+      onTriggerSuccess?.(`${workflowName} stopped`);
+      setTimeout(() => onRefresh?.(), 2000);
     } catch (err: any) {
       onTriggerError?.(workflowName, err.message);
     } finally {
