@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Globe, AlertCircle, CheckCircle, LogOut, Github, ChevronDown } from 'lucide-react';
-import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, AlertCircle, CheckCircle, LogOut, Github, ChevronDown } from 'lucide-react';
+import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG } from '../hooks/useExtensionConfig';
 import ControlPanel from './ControlPanel';
 import ErrorBoundary from './ErrorBoundary';
 import ErrorDisplay from './ErrorDisplay';
@@ -16,41 +16,49 @@ const ServerPanel: React.FC = () => {
   const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
   const [showConfig, setShowConfig] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<{ message: string; variant: 'error' | 'success' } | null>(null);
+  const [oauthStatus, setOauthStatus] = useState<{ message: string; variant: 'error' | 'success' } | null>(null);
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [reposLoading, setReposLoading] = useState(false);
   const [repoSearch, setRepoSearch] = useState('');
   const [repoDropdownOpen, setRepoDropdownOpen] = useState(false);
+  const initialLoadDone = useRef(false);
 
+  // Load config on mount
   useEffect(() => {
     chrome.storage.local.get(['envConfig'], async (result: { envConfig?: EnvConfig }) => {
       const loadedConfig = normalizeEnvConfig(result.envConfig);
 
-      // Auto-detect values from native host if not already set
+      // Auto-detect repo owner/name from native host if not already set
       try {
         const detected = await nativeHost.getConfig();
         if (detected.ok) {
           const merged = { ...loadedConfig };
-          if (!merged.repoPath && detected.repoPath) merged.repoPath = detected.repoPath;
-          if (!merged.pythonPath && detected.pythonPath) merged.pythonPath = detected.pythonPath;
           if (!merged.githubRepoOwner && detected.githubRepoOwner) merged.githubRepoOwner = detected.githubRepoOwner;
           if (!merged.githubRepoName && detected.githubRepoName) merged.githubRepoName = detected.githubRepoName;
           setConfig(merged);
+          initialLoadDone.current = true;
           return;
         }
       } catch {
-        // Native host not available, use loaded config
+        // Native host not available
       }
 
       setConfig(loadedConfig);
+      initialLoadDone.current = true;
     });
   }, []);
+
+  // Auto-save config when it changes (after initial load)
+  useEffect(() => {
+    if (initialLoadDone.current) {
+      chrome.storage.local.set({ envConfig: config });
+    }
+  }, [config]);
 
   const fetchRepos = async (token: string) => {
     if (!token) return;
     setReposLoading(true);
     try {
-      // Only fetch repos owned by user or from orgs they're a member of
       const response = await fetch('https://api.github.com/user/repos?affiliation=owner,organization_member&per_page=100&sort=pushed', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -58,8 +66,7 @@ const ServerPanel: React.FC = () => {
         }
       });
       if (response.ok) {
-        const data = await response.json();
-        setRepos(data);
+        setRepos(await response.json());
       }
     } catch {
       // Ignore fetch errors
@@ -68,68 +75,43 @@ const ServerPanel: React.FC = () => {
     }
   };
 
-  // Fetch repos when token is available
   useEffect(() => {
     if (config.githubToken) {
       fetchRepos(config.githubToken);
     }
   }, [config.githubToken]);
 
-  // Sort repos alphabetically and filter by search
   const filteredRepos = repos
     .filter(r => r.full_name.toLowerCase().includes(repoSearch.toLowerCase()))
     .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   const handleGitHubConnect = async () => {
     setOauthLoading(true);
-    setSaveStatus(null);
+    setOauthStatus(null);
     try {
       const response = await chrome.runtime.sendMessage({ type: 'GITHUB_OAUTH' });
       if (response.error) {
-        setSaveStatus({ message: response.error, variant: 'error' });
+        setOauthStatus({ message: response.error, variant: 'error' });
       } else {
-        const newConfig = {
-          ...config,
-          githubToken: response.access_token,
-          githubUsername: response.username
-        };
-        setConfig(newConfig);
-        chrome.storage.local.set({ envConfig: newConfig });
-        setSaveStatus({ message: `Connected as ${response.username}`, variant: 'success' });
+        setConfig(prev => ({ ...prev, githubToken: response.access_token, githubUsername: response.username }));
+        setOauthStatus({ message: `Connected as ${response.username}`, variant: 'success' });
       }
-    } catch (err) {
-      setSaveStatus({ message: 'OAuth failed. Try again.', variant: 'error' });
+    } catch {
+      setOauthStatus({ message: 'OAuth failed. Try again.', variant: 'error' });
     } finally {
       setOauthLoading(false);
     }
   };
 
   const handleGitHubDisconnect = () => {
-    const newConfig = { ...config, githubToken: '', githubUsername: undefined };
-    setConfig(newConfig);
-    chrome.storage.local.set({ envConfig: newConfig });
-    setSaveStatus({ message: 'Disconnected from GitHub', variant: 'success' });
+    setConfig(prev => ({ ...prev, githubToken: '', githubUsername: undefined }));
+    setRepos([]);
+    setOauthStatus({ message: 'Disconnected from GitHub', variant: 'success' });
   };
 
-  const saveConfig = async () => {
-    setSaveStatus(null);
-    chrome.storage.local.set({ envConfig: config });
-
-    try {
-      const response = await nativeHost.saveConfig(
-        config.pythonPath || '',
-        config.repoPath || ''
-      );
-
-      if (response?.ok) {
-        setSaveStatus({ message: 'Configuration saved successfully.', variant: 'success' });
-      } else {
-        setSaveStatus({ message: response?.error || 'Failed to save config', variant: 'error' });
-      }
-    } catch (err) {
-      console.error('Failed to save config:', err);
-      setSaveStatus({ message: 'Failed to save config file.', variant: 'error' });
-    }
+  const handleRepoSelect = (repo: GitHubRepo) => {
+    setConfig(prev => ({ ...prev, githubRepoOwner: repo.owner.login, githubRepoName: repo.name }));
+    setRepoDropdownOpen(false);
   };
 
   const inputClass = "w-full px-3 py-2.5 bg-[#0a0f14] border border-[#2a3544] rounded-xl text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all";
@@ -191,158 +173,51 @@ const ServerPanel: React.FC = () => {
           </div>
 
           {/* GitHub Repository */}
-          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
-              <Globe className="w-3.5 h-3.5 text-slate-500" />
-              GitHub Repository
-            </div>
-            {config.githubToken && repos.length > 0 ? (
-              <div className="relative">
-                <input
-                  type="text"
-                  value={repoDropdownOpen ? repoSearch : (config.githubRepoOwner && config.githubRepoName ? `${config.githubRepoOwner}/${config.githubRepoName}` : '')}
-                  onChange={(e) => setRepoSearch(e.target.value)}
-                  onFocus={() => { setRepoDropdownOpen(true); setRepoSearch(''); }}
-                  onBlur={() => setTimeout(() => setRepoDropdownOpen(false), 150)}
-                  placeholder="Search repositories..."
-                  className={`${inputClass} cursor-pointer`}
-                />
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                {repoDropdownOpen && (
-                  <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-[#0f1419] border border-[#2a3544] rounded-xl shadow-lg">
-                    {filteredRepos.length > 0 ? filteredRepos.map(repo => (
-                      <button
-                        key={repo.full_name}
-                        type="button"
-                        onMouseDown={() => {
-                          setConfig({ ...config, githubRepoOwner: repo.owner.login, githubRepoName: repo.name });
-                          setRepoDropdownOpen(false);
-                        }}
-                        className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-[#1a232e] transition-colors"
-                      >
-                        {repo.full_name}
-                      </button>
-                    )) : (
-                      <div className="px-3 py-2 text-sm text-slate-500">No matches</div>
-                    )}
-                  </div>
-                )}
+          {config.githubToken && (
+            <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
+              <div className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+                <Github className="w-3.5 h-3.5 text-slate-500" />
+                Repository
               </div>
-            ) : reposLoading ? (
-              <p className="text-xs text-slate-500">Loading repositories...</p>
-            ) : (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={config.githubRepoOwner || ''}
-                  onChange={(e) => setConfig({ ...config, githubRepoOwner: e.target.value })}
-                  className={inputClass}
-                  placeholder="Owner (e.g., jonasneves)"
-                />
-                <input
-                  type="text"
-                  value={config.githubRepoName || ''}
-                  onChange={(e) => setConfig({ ...config, githubRepoName: e.target.value })}
-                  className={inputClass}
-                  placeholder="Repository (e.g., my-project)"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Repository Path */}
-          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
-            <label htmlFor="repo-path" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
-              <Globe className="w-3.5 h-3.5 text-slate-500" />
-              Repository Path
-            </label>
-            <input
-              id="repo-path"
-              type="text"
-              value={config.repoPath || ''}
-              onChange={(e) => setConfig({ ...config, repoPath: e.target.value })}
-              className={`${inputClass} font-mono text-xs`}
-              placeholder="~/Documents/GitHub/my-project"
-            />
-            <p className="mt-2 text-[11px] text-slate-500">
-              Local path to your project. Leave empty to auto-detect.
-            </p>
-          </div>
-
-          {/* Python Path */}
-          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
-            <label htmlFor="python-path" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
-              <Globe className="w-3.5 h-3.5 text-slate-500" />
-              Python Path
-            </label>
-            <input
-              id="python-path"
-              type="text"
-              value={config.pythonPath || ''}
-              onChange={(e) => setConfig({ ...config, pythonPath: e.target.value })}
-              className={`${inputClass} font-mono text-xs`}
-              placeholder="/usr/bin/python3"
-            />
-            <p className="mt-2 text-[11px] text-slate-500">
-              Python interpreter for native host. Leave empty to auto-detect.
-            </p>
-          </div>
-
-          {/* Chat API URL */}
-          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
-            <label htmlFor="chat-api-url" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
-              <Globe className="w-3.5 h-3.5 text-slate-500" />
-              Chat API URL
-            </label>
-            <input
-              id="chat-api-url"
-              type="text"
-              value={config.chatApiBaseUrl}
-              onChange={(e) => setConfig({ ...config, profile: 'custom', chatApiBaseUrl: e.target.value })}
-              className={inputClass}
-              placeholder="http://localhost:8080"
-            />
-          </div>
-
-          {/* Models Domain */}
-          <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
-            <label htmlFor="models-domain" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
-              <Globe className="w-3.5 h-3.5 text-slate-500" />
-              Models Domain
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="models-domain"
-                type="text"
-                value={config.modelsBaseDomain}
-                onChange={(e) => setConfig({ ...config, profile: 'custom', modelsBaseDomain: e.target.value.trim() })}
-                className={inputClass}
-                placeholder={REGISTRY_CONFIG.domain.base}
-              />
-              {config.modelsBaseDomain && (
-                <label className="flex items-center gap-2 px-3 py-2 bg-[#0a0f14] border border-[#2a3544] rounded-xl text-xs text-slate-400 cursor-pointer hover:border-slate-500 transition-colors">
+              {repos.length > 0 ? (
+                <div className="relative">
                   <input
-                    type="checkbox"
-                    checked={config.modelsUseHttps}
-                    onChange={(e) => setConfig({ ...config, profile: 'custom', modelsUseHttps: e.target.checked })}
-                    className="w-3.5 h-3.5"
+                    type="text"
+                    value={repoDropdownOpen ? repoSearch : (config.githubRepoOwner && config.githubRepoName ? `${config.githubRepoOwner}/${config.githubRepoName}` : '')}
+                    onChange={(e) => setRepoSearch(e.target.value)}
+                    onFocus={() => { setRepoDropdownOpen(true); setRepoSearch(''); }}
+                    onBlur={() => setTimeout(() => setRepoDropdownOpen(false), 150)}
+                    placeholder="Search repositories..."
+                    className={`${inputClass} cursor-pointer`}
                   />
-                  HTTPS
-                </label>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  {repoDropdownOpen && (
+                    <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-[#0f1419] border border-[#2a3544] rounded-xl shadow-lg">
+                      {filteredRepos.length > 0 ? filteredRepos.map(repo => (
+                        <button
+                          key={repo.full_name}
+                          type="button"
+                          onMouseDown={() => handleRepoSelect(repo)}
+                          className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-[#1a232e] transition-colors"
+                        >
+                          {repo.full_name}
+                        </button>
+                      )) : (
+                        <div className="px-3 py-2 text-sm text-slate-500">No matches</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : reposLoading ? (
+                <p className="text-xs text-slate-500">Loading repositories...</p>
+              ) : (
+                <p className="text-xs text-slate-500">No repositories found</p>
               )}
             </div>
-          </div>
+          )}
 
-          {/* Save Button */}
-          <button
-            onClick={saveConfig}
-            className="w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium text-white transition-colors"
-          >
-            Save Configuration
-          </button>
-
-          {saveStatus && (
-            <ErrorDisplay message={saveStatus.message} variant={saveStatus.variant} />
+          {oauthStatus && (
+            <ErrorDisplay message={oauthStatus.message} variant={oauthStatus.variant} />
           )}
         </div>
       </div>
