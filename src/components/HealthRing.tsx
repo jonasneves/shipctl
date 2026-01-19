@@ -1,5 +1,5 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { RefreshCw, Settings, MoreVertical, RotateCcw, Package, ExternalLink } from 'lucide-react';
+import { RefreshCw, Settings, Zap, RotateCcw, Package, ExternalLink } from 'lucide-react';
 
 interface HealthRingProps {
   online: number;
@@ -160,7 +160,7 @@ const HealthRing: React.FC<HealthRingProps> = ({
               title="Actions"
               aria-label="Open actions menu"
             >
-              <MoreVertical className="w-4 h-4" />
+              <Zap className="w-4 h-4" />
             </button>
 
             {menuOpen && (
