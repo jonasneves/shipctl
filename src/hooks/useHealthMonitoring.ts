@@ -71,16 +71,19 @@ export function useHealthMonitoring({
     });
   }, [modelsBaseDomain, modelsUseHttps]);
 
-  // Aggregate stats
+  // Aggregate stats (includes Chat API + all models)
   const stats = useMemo(() => {
     const healthValues = [...modelHealthStatuses.values()];
+    const backendOnline = backendHealth.status === 'ok' ? 1 : 0;
+    const backendDown = backendHealth.status === 'down' ? 1 : 0;
+    const backendChecking = backendHealth.status === 'checking' ? 1 : 0;
     return {
-      online: healthValues.filter(s => s.status === 'ok').length,
-      checking: healthValues.filter(s => s.status === 'checking').length,
-      down: healthValues.filter(s => s.status === 'down').length,
-      total: SERVICES.length,
+      online: healthValues.filter(s => s.status === 'ok').length + backendOnline,
+      checking: healthValues.filter(s => s.status === 'checking').length + backendChecking,
+      down: healthValues.filter(s => s.status === 'down').length + backendDown,
+      total: SERVICES.length + 1,
     };
-  }, [modelHealthStatuses]);
+  }, [modelHealthStatuses, backendHealth]);
 
   return {
     backendHealth,
