@@ -23,8 +23,7 @@ export function useWorkflowOrchestration({
 }: UseWorkflowOrchestrationProps) {
   // Workflows keyed by path (e.g., ".github/workflows/chat.yml")
   const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
-  const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
-  // All active runs keyed by workflow path
+  // Active runs keyed by workflow path
   const [activeRuns, setActiveRuns] = useState<Map<string, WorkflowRun[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,26 +66,21 @@ export function useWorkflowOrchestration({
   const fetchLatestRuns = useCallback(async () => {
     if (!githubToken || workflows.size === 0) return;
 
-    const newRuns = new Map<string, WorkflowRun | null>();
     const newActiveRuns = new Map<string, WorkflowRun[]>();
     let activeCount = 0;
 
     for (const [path, wf] of workflows) {
       try {
-        // Get all active runs for each workflow
         const runsList = await github.getActiveRuns(wf.id);
         newActiveRuns.set(path, runsList);
-        newRuns.set(path, runsList[0] || null);
         activeCount += runsList.filter(r =>
           r.status === 'in_progress' || r.status === 'queued'
         ).length;
       } catch {
-        newRuns.set(path, null);
         newActiveRuns.set(path, []);
       }
     }
 
-    setRuns(newRuns);
     setActiveRuns(newActiveRuns);
     onActiveDeploymentsChange?.(activeCount);
     setLoading(false);
@@ -190,7 +184,7 @@ export function useWorkflowOrchestration({
   // Count active runs across all workflows
   const deployingCount = useMemo(() => {
     let count = 0;
-    for (const [, runsList] of activeRuns) {
+    for (const runsList of activeRuns.values()) {
       count += runsList.filter(r =>
         r.status === 'in_progress' || r.status === 'queued'
       ).length;
@@ -200,7 +194,6 @@ export function useWorkflowOrchestration({
 
   return {
     workflows,
-    runs,
     activeRuns,
     loading,
     error,

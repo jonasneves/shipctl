@@ -220,9 +220,11 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   const isLocalChat = chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1');
 
   // Map health status to service status
-  const healthToStatus = (status: 'ok' | 'down' | 'checking') =>
-    status === 'ok' ? 'running' as const :
-    status === 'down' ? 'stopped' as const : 'checking' as const;
+  const healthToStatus = (status: 'ok' | 'down' | 'checking'): 'running' | 'stopped' | 'checking' => {
+    if (status === 'ok') return 'running';
+    if (status === 'down') return 'stopped';
+    return 'checking';
+  };
 
   // Build chat-api service data
   const chatApiService = useMemo(() => ({
@@ -519,7 +521,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
             </Section>
           );
         })}
-
 
         {/* Errors */}
         <ErrorDisplay message={buildNativeError} />
