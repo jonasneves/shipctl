@@ -236,6 +236,8 @@ const ServerPanel: React.FC = () => {
           modelsUseHttps={config.modelsUseHttps}
           showOnlyBackend={false}
           onOpenSettings={() => setShowConfig(true)}
+          onConnectGitHub={handleGitHubConnect}
+          connectingGitHub={oauthLoading}
         />
       </ErrorBoundary>
     </div>
