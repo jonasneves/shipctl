@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { WORKFLOWS, WORKFLOW_PATHS } from './useExtensionConfig';
+import { WORKFLOWS } from './useExtensionConfig';
 import { GitHubService, type WorkflowRun, type WorkflowInfo } from '../services/github';
 
 interface UseWorkflowOrchestrationProps {
@@ -21,14 +21,14 @@ export function useWorkflowOrchestration({
   onTriggerSuccess,
   onTriggerError,
 }: UseWorkflowOrchestrationProps) {
+  // Workflows keyed by path (e.g., ".github/workflows/chat.yml")
   const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
   const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
-  // For standalone workflows: store all active runs keyed by workflow name
-  const [standaloneRuns, setStandaloneRuns] = useState<Map<string, WorkflowRun[]>>(new Map());
+  // All active runs keyed by workflow path
+  const [activeRuns, setActiveRuns] = useState<Map<string, WorkflowRun[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [triggering, setTriggering] = useState<string | null>(null);
-  // Track workflows that were just triggered (for immediate "starting" feedback)
   const [recentlyTriggered, setRecentlyTriggered] = useState<Set<string>>(new Set());
 
   const github = useMemo(
@@ -46,15 +46,13 @@ export function useWorkflowOrchestration({
       const fetchedWorkflows = await github.getWorkflows();
       const wfMap = new Map<string, WorkflowInfo>();
 
-      for (const keyWf of WORKFLOWS) {
-        const matchingGhWf = fetchedWorkflows.find(wf =>
-          wf.path === keyWf.path || wf.path?.endsWith(`/${keyWf.path}`)
-        );
-        if (matchingGhWf) {
-          wfMap.set(keyWf.name, {
-            id: matchingGhWf.id,
-            name: keyWf.name,
-            path: matchingGhWf.path
+      // Store ALL workflows from GitHub, keyed by path
+      for (const wf of fetchedWorkflows) {
+        if (wf.path && wf.id) {
+          wfMap.set(wf.path, {
+            id: wf.id,
+            name: wf.name || wf.path.replace('.github/workflows/', '').replace('.yml', ''),
+            path: wf.path,
           });
         }
       }
@@ -70,94 +68,88 @@ export function useWorkflowOrchestration({
     if (!githubToken || workflows.size === 0) return;
 
     const newRuns = new Map<string, WorkflowRun | null>();
-    const newStandaloneRuns = new Map<string, WorkflowRun[]>();
+    const newActiveRuns = new Map<string, WorkflowRun[]>();
     let activeCount = 0;
 
-    for (const [name, wf] of workflows) {
+    for (const [path, wf] of workflows) {
       try {
-        const workflowConfig = WORKFLOWS.find(w => w.name === name);
-        const isServiceWorkflow = !!workflowConfig?.serviceKey;
-
-        if (isServiceWorkflow) {
-          // Service workflows: get latest run filtered by model
-          const run = await github.getLatestRun(wf.id, workflowConfig.serviceKey);
-          newRuns.set(name, run);
-          if (run?.status === 'in_progress' || run?.status === 'queued') activeCount++;
-        } else {
-          // Standalone workflows: get all active runs
-          const activeRunsList = await github.getActiveRuns(wf.id);
-          newStandaloneRuns.set(name, activeRunsList);
-          // Also set the first run in runs map for backwards compatibility
-          newRuns.set(name, activeRunsList[0] || null);
-          activeCount += activeRunsList.filter(r =>
-            r.status === 'in_progress' || r.status === 'queued'
-          ).length;
-        }
+        // Get all active runs for each workflow
+        const runsList = await github.getActiveRuns(wf.id);
+        newActiveRuns.set(path, runsList);
+        newRuns.set(path, runsList[0] || null);
+        activeCount += runsList.filter(r =>
+          r.status === 'in_progress' || r.status === 'queued'
+        ).length;
       } catch {
-        newRuns.set(name, null);
-        newStandaloneRuns.set(name, []);
+        newRuns.set(path, null);
+        newActiveRuns.set(path, []);
       }
     }
 
     setRuns(newRuns);
-    setStandaloneRuns(newStandaloneRuns);
+    setActiveRuns(newActiveRuns);
     onActiveDeploymentsChange?.(activeCount);
     setLoading(false);
   }, [githubToken, github, workflows, onActiveDeploymentsChange]);
 
-  const triggerWorkflow = useCallback(async (workflowName: string) => {
-    const wf = workflows.get(workflowName);
-    const fallbackPath = WORKFLOW_PATHS.get(workflowName);
-    if (!wf && !fallbackPath) {
-      setError(`Workflow ${workflowName} not found`);
+  // Trigger workflow by path (e.g., ".github/workflows/chat.yml") or short path ("chat.yml")
+  const triggerWorkflow = useCallback(async (workflowPath: string, inputs?: Record<string, string>) => {
+    // Find workflow by full path or short path
+    const wf = workflows.get(workflowPath) ||
+      Array.from(workflows.values()).find(w => w.path.endsWith(workflowPath));
+
+    if (!wf) {
+      setError(`Workflow ${workflowPath} not found`);
       return;
     }
 
-    setTriggering(workflowName);
+    setTriggering(wf.path);
     try {
-      const workflowIdentifier = wf?.id ?? fallbackPath;
-      const workflowConfig = WORKFLOWS.find(w => w.name === workflowName);
-      const inputs = workflowConfig?.serviceKey
-        ? { model: workflowConfig.serviceKey }
-        : undefined;
+      await github.triggerWorkflow(wf.id, inputs);
 
-      await github.triggerWorkflow(workflowIdentifier!, inputs);
+      setRecentlyTriggered(prev => new Set(prev).add(wf.path));
+      onTriggerSuccess?.(wf.name);
 
-      // Mark as recently triggered for immediate "starting" feedback
-      setRecentlyTriggered(prev => new Set(prev).add(workflowName));
-      onTriggerSuccess?.(workflowName);
-
-      // Aggressive refresh polling at 3s, 6s, 10s
       [3000, 6000, 10000].forEach(ms => setTimeout(() => onRefresh?.(), ms));
 
-      // Clear from recentlyTriggered after 15s
       setTimeout(() => {
         setRecentlyTriggered(prev => {
           const next = new Set(prev);
-          next.delete(workflowName);
+          next.delete(wf.path);
           return next;
         });
       }, 15000);
     } catch (err: any) {
       setError(err.message);
-      onTriggerError?.(workflowName, err.message);
+      onTriggerError?.(wf.name, err.message);
     } finally {
       setTriggering(null);
     }
   }, [workflows, github, onRefresh, onTriggerSuccess, onTriggerError]);
 
   const triggerAllWorkflows = useCallback(async () => {
+    // Trigger all service workflows from config + Chat
     const allServiceWorkflows = WORKFLOWS.filter(wf => wf.serviceKey);
     for (const wf of allServiceWorkflows) {
-      await triggerWorkflow(wf.name);
+      const ghWf = Array.from(workflows.values()).find(w => w.path.endsWith(wf.path));
+      if (ghWf) {
+        await triggerWorkflow(ghWf.path, { model: wf.serviceKey! });
+      }
     }
-    await triggerWorkflow('Chat');
-  }, [triggerWorkflow]);
+    // Trigger Chat workflow
+    const chatWf = Array.from(workflows.values()).find(w => w.path.endsWith('chat.yml'));
+    if (chatWf) await triggerWorkflow(chatWf.path);
+  }, [workflows, triggerWorkflow]);
 
   const cancelAllRunning = useCallback(async () => {
-    const runningRuns = Array.from(runs.entries())
-      .filter(([_, run]) => run?.status === 'in_progress' || run?.status === 'queued')
-      .map(([name, run]) => ({ name, run: run! }));
+    const runningRuns: { path: string; run: WorkflowRun }[] = [];
+    for (const [path, runsList] of activeRuns) {
+      for (const run of runsList) {
+        if (run.status === 'in_progress' || run.status === 'queued') {
+          runningRuns.push({ path, run });
+        }
+      }
+    }
 
     if (runningRuns.length === 0) {
       onTriggerError?.('Stop All', 'No running workflows found');
@@ -166,64 +158,50 @@ export function useWorkflowOrchestration({
 
     setTriggering('stopping');
     let stopped = 0;
-    for (const { name, run } of runningRuns) {
+    for (const { path, run } of runningRuns) {
       try {
         await github.cancelRun(run.id);
-        onTriggerSuccess?.(`${name} stopped`);
+        const wf = workflows.get(path);
+        onTriggerSuccess?.(`${wf?.name || path} stopped`);
         stopped++;
       } catch (err: any) {
-        onTriggerError?.(name, err.message);
+        onTriggerError?.(path, err.message);
       }
     }
     if (stopped > 0) {
       setTimeout(() => onRefresh?.(), 2000);
     }
     setTriggering(null);
-  }, [runs, github, onRefresh, onTriggerSuccess, onTriggerError]);
+  }, [activeRuns, workflows, github, onRefresh, onTriggerSuccess, onTriggerError]);
 
-  const cancelWorkflow = useCallback(async (workflowName: string) => {
-    const run = runs.get(workflowName);
-    if (!run || (run.status !== 'in_progress' && run.status !== 'queued')) {
-      onTriggerError?.(workflowName, 'No running workflow to stop');
-      return;
-    }
-
-    setTriggering(`stopping:${workflowName}`);
+  const cancelWorkflowRun = useCallback(async (runId: number, displayName: string) => {
+    setTriggering(`stopping:${runId}`);
     try {
-      await github.cancelRun(run.id);
-      onTriggerSuccess?.(`${workflowName} stopped`);
+      await github.cancelRun(runId);
+      onTriggerSuccess?.(`${displayName} stopped`);
       setTimeout(() => onRefresh?.(), 2000);
     } catch (err: any) {
-      onTriggerError?.(workflowName, err.message);
+      onTriggerError?.(displayName, err.message);
     } finally {
       setTriggering(null);
     }
-  }, [runs, github, onRefresh, onTriggerSuccess, onTriggerError]);
+  }, [github, onRefresh, onTriggerSuccess, onTriggerError]);
 
-  // Deploying count for stats - only counts non-service workflows (traditional CI/CD)
-  // Service workflows with in_progress status means they're "running", not "deploying"
+  // Count active runs across all workflows
   const deployingCount = useMemo(() => {
     let count = 0;
-    for (const [name, run] of runs) {
-      if (!run) continue;
-      if (run.status !== 'in_progress' && run.status !== 'queued') continue;
-
-      // Check if this workflow is a long-running service (has serviceKey)
-      const workflowConfig = WORKFLOWS.find(w => w.name === name);
-      const isServiceWorkflow = !!workflowConfig?.serviceKey || name === 'Chat';
-
-      // Only count as "deploying" if it's NOT a long-running service
-      if (!isServiceWorkflow) {
-        count++;
-      }
+    for (const [, runsList] of activeRuns) {
+      count += runsList.filter(r =>
+        r.status === 'in_progress' || r.status === 'queued'
+      ).length;
     }
     return count;
-  }, [runs]);
+  }, [activeRuns]);
 
   return {
     workflows,
     runs,
-    standaloneRuns,
+    activeRuns,
     loading,
     error,
     triggering,
@@ -234,7 +212,7 @@ export function useWorkflowOrchestration({
     triggerWorkflow,
     triggerAllWorkflows,
     cancelAllRunning,
-    cancelWorkflow,
+    cancelWorkflowRun,
     deployingCount,
   };
 }

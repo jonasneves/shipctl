@@ -7,7 +7,7 @@ import ServiceDetail from './ServiceDetail';
 import WorkflowRow from './WorkflowRow';
 import ErrorDisplay from './ErrorDisplay';
 import { ToastContainer, type ToastMessage } from './Toast';
-import { SERVICES, WORKFLOWS, WORKFLOW_PATHS, SERVICE_TO_WORKFLOW, BUILD_WORKFLOW, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
+import { SERVICES, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
 import { useHealthMonitoring } from '../hooks/useHealthMonitoring';
 import { useBackendControl } from '../hooks/useBackendControl';
 import { useWorkflowOrchestration } from '../hooks/useWorkflowOrchestration';
@@ -103,8 +103,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   // Workflow orchestration hook
   const {
     workflows,
-    runs,
-    standaloneRuns,
+    activeRuns,
     loading,
     error,
     triggering,
@@ -115,7 +114,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     triggerWorkflow,
     triggerAllWorkflows,
     cancelAllRunning,
-    cancelWorkflow,
+    cancelWorkflowRun,
     deployingCount,
   } = useWorkflowOrchestration({
     githubToken,
@@ -190,20 +189,20 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     deploying: deployingCount,
   }), [healthStats, deployingCount]);
 
-  // Workflow status for services
-  // These are LONG-RUNNING services, so:
-  // - in_progress = service is running normally (good!)
-  // - completed + success = service stopped (bad for a service!)
-  // - completed + failure = service crashed
-  // - queued = service is starting up
-  // - recentlyTriggered = user just clicked Start, show "starting" immediately
+  // Workflow status for services (model services use inference.yml)
   const getWorkflowStatusForService = (appId: string): 'running' | 'stopped' | 'failed' | 'starting' | 'unknown' => {
-    const workflowName = SERVICE_TO_WORKFLOW.get(appId);
-    if (!workflowName) return 'unknown';
+    // Find inference workflow path
+    const inferenceWfPath = Array.from(workflows.keys()).find(p => p.endsWith('inference.yml'));
+    if (!inferenceWfPath) return 'unknown';
 
-    if (recentlyTriggered.has(workflowName)) return 'starting';
+    if (recentlyTriggered.has(inferenceWfPath)) return 'starting';
 
-    const run = runs.get(workflowName);
+    // Find run matching this service's model in display_title
+    const runsList = activeRuns.get(inferenceWfPath) || [];
+    const run = runsList.find(r =>
+      r.display_title?.toLowerCase().startsWith(appId.toLowerCase())
+    );
+
     if (!run) return 'unknown';
     if (run.status === 'in_progress') return 'running';
     if (run.status === 'queued') return 'starting';
@@ -252,77 +251,84 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const allServices = useMemo(() =>
     SERVICES.map(service => buildService(service.key, service.name))
-  , [modelHealthStatuses, runs, recentlyTriggered]);
+  , [modelHealthStatuses, workflows, activeRuns, recentlyTriggered]);
 
-  // Group workflows by path to create sections
+  // Group workflows by their GitHub name
   const workflowSections = useMemo(() => {
     const sectionMap = new Map<string, {
       name: string;
+      path: string;
       services: typeof allServices;
-      standaloneWorkflows: { name: string; workflowName: string; workflowInfo: any; run: any }[];
+      workflowRuns: { name: string; workflowPath: string; run: any }[];
     }>();
 
-    // Group workflows by path
-    for (const wf of WORKFLOWS) {
-      const sectionName = wf.path.replace('.yml', '');
-      if (!sectionMap.has(sectionName)) {
-        sectionMap.set(sectionName, { name: sectionName, services: [], standaloneWorkflows: [] });
-      }
-      const section = sectionMap.get(sectionName)!;
+    // First add model services (inference workflow)
+    const inferenceWf = Array.from(workflows.entries()).find(([p]) => p.endsWith('inference.yml'));
+    if (inferenceWf) {
+      const [path, wf] = inferenceWf;
+      sectionMap.set(path, { name: wf.name, path, services: [...allServices], workflowRuns: [] });
+    }
 
-      if (wf.serviceKey) {
-        // Service-backed workflow
-        const service = allServices.find(s => s.id === wf.serviceKey);
-        if (service) section.services.push(service);
-      } else if (wf.name === 'Chat') {
-        // Chat workflow: show each active run as a service row (clickable for controls)
-        const activeRunsList = standaloneRuns.get(wf.name) || [];
-        if (activeRunsList.length > 0) {
-          for (const run of activeRunsList) {
+    // Then add all other GitHub workflows
+    for (const [path, wf] of workflows) {
+      // Skip inference - handled above
+      if (path.endsWith('inference.yml')) continue;
+
+      if (!sectionMap.has(path)) {
+        sectionMap.set(path, { name: wf.name, path, services: [], workflowRuns: [] });
+      }
+      const section = sectionMap.get(path)!;
+
+      const runsList = activeRuns.get(path) || [];
+      const isChat = path.endsWith('chat.yml');
+
+      if (isChat) {
+        // Chat workflow: show each run as a clickable service row
+        if (runsList.length > 0) {
+          for (const run of runsList) {
             section.services.push({
               ...chatApiService,
-              name: run.display_title || 'Chat API',
+              name: run.display_title || wf.name,
             });
           }
         } else {
-          // No active runs - show default chat-api service
           section.services.push(chatApiService);
         }
       } else {
-        // Standalone workflow - show all active runs as separate rows
-        const activeRunsList = standaloneRuns.get(wf.name) || [];
-        if (activeRunsList.length > 0) {
-          for (const run of activeRunsList) {
-            section.standaloneWorkflows.push({
+        // Other workflows: show all runs as workflow rows
+        if (runsList.length > 0) {
+          for (const run of runsList) {
+            section.workflowRuns.push({
               name: run.display_title || wf.name,
-              workflowName: wf.name,
-              workflowInfo: workflows.get(wf.name),
+              workflowPath: path,
               run,
             });
           }
         } else {
-          // No runs - show workflow with no status
-          section.standaloneWorkflows.push({
+          section.workflowRuns.push({
             name: wf.name,
-            workflowName: wf.name,
-            workflowInfo: workflows.get(wf.name),
+            workflowPath: path,
             run: null,
           });
         }
       }
     }
 
-    // Sort and filter within each section
-    for (const section of sectionMap.values()) {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      for (const section of sectionMap.values()) {
         section.services = section.services.filter(s =>
           s.name.toLowerCase().includes(query) || s.id.toLowerCase().includes(query)
         );
-        section.standaloneWorkflows = section.standaloneWorkflows.filter(w =>
+        section.workflowRuns = section.workflowRuns.filter(w =>
           w.name.toLowerCase().includes(query)
         );
       }
+    }
+
+    // Sort services by status within each section
+    for (const section of sectionMap.values()) {
       section.services.sort((a, b) => {
         const getScore = (s: typeof a) => {
           const isWorkflowBad = s.workflowStatus === 'stopped' || s.workflowStatus === 'failed';
@@ -336,24 +342,40 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       });
     }
 
-    return sectionMap;
-  }, [allServices, chatApiService, workflows, runs, standaloneRuns, searchQuery]);
+    // Return sections sorted by workflow name
+    return Array.from(sectionMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allServices, chatApiService, workflows, activeRuns, searchQuery]);
 
   // GitHub Actions URL
   const githubActionsUrl = githubRepoOwner && githubRepoName
     ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions`
     : undefined;
 
-  // Build workflow name (for HealthRing actions)
-  const buildWorkflowName = BUILD_WORKFLOW?.name;
+  // Find workflow paths for common operations
+  const chatWfPath = Array.from(workflows.keys()).find(p => p.endsWith('chat.yml'));
+  const inferenceWfPath = Array.from(workflows.keys()).find(p => p.endsWith('inference.yml'));
+  const buildWfPath = Array.from(workflows.keys()).find(p => p.includes('build'));
 
   // If a service is selected, show detail view
   if (selectedService) {
     const isChatApi = selectedService === 'chat-api';
     const service = isChatApi ? chatApiService : allServices.find(s => s.id === selectedService);
     if (service) {
-      const workflowName = isChatApi ? 'Chat' : SERVICE_TO_WORKFLOW.get(service.id);
-      const lastRun = workflowName ? runs.get(workflowName) : null;
+      const workflowPath = isChatApi ? chatWfPath : inferenceWfPath;
+
+      // Find the run for this service
+      let lastRun = null;
+      if (workflowPath) {
+        const runsList = activeRuns.get(workflowPath) || [];
+        if (isChatApi) {
+          lastRun = runsList[0] || null;
+        } else {
+          // Find run matching service's model name
+          lastRun = runsList.find(r =>
+            r.display_title?.toLowerCase().startsWith(service.id.toLowerCase())
+          ) || null;
+        }
+      }
 
       // Get local endpoint for this service
       const serviceConfig = SERVICES.find(s => s.key === service.id);
@@ -373,12 +395,12 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           localEndpointUrl={localEndpointUrl}
           workflowStatus={service.workflowStatus}
           lastRun={lastRun}
-          onStartCloud={workflowName && githubToken ? () => triggerWorkflow(workflowName) : undefined}
-          onStopCloud={workflowName && githubToken ? () => cancelWorkflow(workflowName) : undefined}
-          onBuildCloud={buildWorkflowName && githubToken ? () => triggerWorkflow(buildWorkflowName) : undefined}
-          cloudTriggering={triggering === workflowName}
-          cloudStopping={triggering === `stopping:${workflowName}`}
-          cloudBuilding={triggering === buildWorkflowName}
+          onStartCloud={workflowPath && githubToken ? () => triggerWorkflow(workflowPath, isChatApi ? undefined : { model: service.id }) : undefined}
+          onStopCloud={lastRun && githubToken ? () => cancelWorkflowRun(lastRun.id, service.name) : undefined}
+          onBuildCloud={buildWfPath && githubToken ? () => triggerWorkflow(buildWfPath) : undefined}
+          cloudTriggering={triggering === workflowPath}
+          cloudStopping={triggering === `stopping:${lastRun?.id}`}
+          cloudBuilding={triggering === buildWfPath}
           onBuild={isChatApi ? () => runBuild('playground') : undefined}
           buildBusy={buildBusy}
           buildLogTail={buildLogTail}
@@ -415,10 +437,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onSettings={onOpenSettings}
           onRestartAll={githubToken ? triggerAllWorkflows : undefined}
           onStopAll={githubToken ? cancelAllRunning : undefined}
-          onBuildImages={githubToken && buildWorkflowName ? () => triggerWorkflow(buildWorkflowName) : undefined}
-          isRestarting={!!triggering && triggering !== buildWorkflowName && triggering !== 'stopping'}
+          onBuildImages={githubToken && buildWfPath ? () => triggerWorkflow(buildWfPath) : undefined}
+          isRestarting={!!triggering && triggering !== buildWfPath && triggering !== 'stopping'}
           isStopping={triggering === 'stopping'}
-          isBuildingImages={triggering === buildWorkflowName}
+          isBuildingImages={triggering === buildWfPath}
           actionsDisabled={!githubToken}
           githubActionsUrl={githubActionsUrl}
         />
@@ -453,9 +475,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
         )}
 
         {/* Workflow sections */}
-        {Array.from(workflowSections.entries()).map(([sectionName, section]) => {
+        {workflowSections.map(section => {
           const hasServices = section.services.length > 0;
-          const hasWorkflows = section.standaloneWorkflows.length > 0;
+          const hasWorkflows = section.workflowRuns.length > 0;
           if (!hasServices && !hasWorkflows) return null;
 
           const online = section.services.filter(s => s.status === 'running').length;
@@ -464,16 +486,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
           return (
             <Section
-              key={sectionName}
-              title={sectionName}
+              key={section.path}
+              title={section.name}
               badge={total > 1 ? `${online}/${total}` : undefined}
               badgeColor={down > 0 ? 'danger' : 'success'}
               defaultOpen={true}
             >
               <div className="space-y-0.5">
-                {section.services.map(service => (
+                {section.services.map((service, idx) => (
                   <ServiceRow
-                    key={service.id}
+                    key={`${service.id}-${idx}`}
                     name={service.name}
                     status={service.status}
                     workflowStatus={service.workflowStatus}
@@ -481,15 +503,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
                     onClick={() => setSelectedService(service.id)}
                   />
                 ))}
-                {section.standaloneWorkflows.map(wf => (
+                {section.workflowRuns.map(wf => (
                   <WorkflowRow
-                    key={wf.run?.id || wf.workflowName}
+                    key={wf.run?.id || wf.workflowPath}
                     name={wf.name}
                     status={wf.run?.status}
                     conclusion={wf.run?.conclusion}
-                    htmlUrl={wf.run?.html_url || (wf.workflowInfo ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${sectionName}.yml` : undefined)}
-                    onTrigger={() => triggerWorkflow(wf.workflowName)}
-                    triggering={triggering === wf.workflowName}
+                    htmlUrl={wf.run?.html_url || `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${section.path.split('/').pop()}`}
+                    onTrigger={() => triggerWorkflow(wf.workflowPath)}
+                    triggering={triggering === wf.workflowPath}
                     disabled={!githubToken}
                   />
                 ))}
