@@ -32,7 +32,6 @@ export function useWorkflowOrchestration({
 
   const fetchWorkflows = useCallback(async () => {
     if (!githubToken) {
-      setError('GitHub token required');
       setLoading(false);
       return;
     }
