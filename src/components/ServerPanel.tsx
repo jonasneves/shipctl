@@ -1,16 +1,26 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Globe, AlertCircle, CheckCircle, LogOut, Github } from 'lucide-react';
+import { ArrowLeft, Globe, AlertCircle, CheckCircle, LogOut, Github, ChevronDown } from 'lucide-react';
 import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG } from '../hooks/useExtensionConfig';
 import ControlPanel from './ControlPanel';
 import ErrorBoundary from './ErrorBoundary';
 import ErrorDisplay from './ErrorDisplay';
 import { nativeHost } from '../services/nativeHost';
 
+interface GitHubRepo {
+  full_name: string;
+  owner: { login: string };
+  name: string;
+}
+
 const ServerPanel: React.FC = () => {
   const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
   const [showConfig, setShowConfig] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{ message: string; variant: 'error' | 'success' } | null>(null);
+  const [repos, setRepos] = useState<GitHubRepo[]>([]);
+  const [reposLoading, setReposLoading] = useState(false);
+  const [repoSearch, setRepoSearch] = useState('');
+  const [repoDropdownOpen, setRepoDropdownOpen] = useState(false);
 
   useEffect(() => {
     chrome.storage.local.get(['envConfig'], async (result: { envConfig?: EnvConfig }) => {
@@ -35,6 +45,40 @@ const ServerPanel: React.FC = () => {
       setConfig(loadedConfig);
     });
   }, []);
+
+  const fetchRepos = async (token: string) => {
+    if (!token) return;
+    setReposLoading(true);
+    try {
+      // Only fetch repos owned by user or from orgs they're a member of
+      const response = await fetch('https://api.github.com/user/repos?affiliation=owner,organization_member&per_page=100&sort=pushed', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRepos(data);
+      }
+    } catch {
+      // Ignore fetch errors
+    } finally {
+      setReposLoading(false);
+    }
+  };
+
+  // Fetch repos when token is available
+  useEffect(() => {
+    if (config.githubToken) {
+      fetchRepos(config.githubToken);
+    }
+  }, [config.githubToken]);
+
+  // Sort repos alphabetically and filter by search
+  const filteredRepos = repos
+    .filter(r => r.full_name.toLowerCase().includes(repoSearch.toLowerCase()))
+    .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
   const handleGitHubConnect = async () => {
     setOauthLoading(true);
@@ -152,22 +196,58 @@ const ServerPanel: React.FC = () => {
               <Globe className="w-3.5 h-3.5 text-slate-500" />
               GitHub Repository
             </div>
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={config.githubRepoOwner || ''}
-                onChange={(e) => setConfig({ ...config, githubRepoOwner: e.target.value })}
-                className={inputClass}
-                placeholder="Owner (e.g., jonasneves)"
-              />
-              <input
-                type="text"
-                value={config.githubRepoName || ''}
-                onChange={(e) => setConfig({ ...config, githubRepoName: e.target.value })}
-                className={inputClass}
-                placeholder="Repository (e.g., my-project)"
-              />
-            </div>
+            {config.githubToken && repos.length > 0 ? (
+              <div className="relative">
+                <input
+                  type="text"
+                  value={repoDropdownOpen ? repoSearch : (config.githubRepoOwner && config.githubRepoName ? `${config.githubRepoOwner}/${config.githubRepoName}` : '')}
+                  onChange={(e) => setRepoSearch(e.target.value)}
+                  onFocus={() => { setRepoDropdownOpen(true); setRepoSearch(''); }}
+                  onBlur={() => setTimeout(() => setRepoDropdownOpen(false), 150)}
+                  placeholder="Search repositories..."
+                  className={`${inputClass} cursor-pointer`}
+                />
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                {repoDropdownOpen && (
+                  <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto bg-[#0f1419] border border-[#2a3544] rounded-xl shadow-lg">
+                    {filteredRepos.length > 0 ? filteredRepos.map(repo => (
+                      <button
+                        key={repo.full_name}
+                        type="button"
+                        onMouseDown={() => {
+                          setConfig({ ...config, githubRepoOwner: repo.owner.login, githubRepoName: repo.name });
+                          setRepoDropdownOpen(false);
+                        }}
+                        className="w-full px-3 py-2 text-left text-sm text-slate-200 hover:bg-[#1a232e] transition-colors"
+                      >
+                        {repo.full_name}
+                      </button>
+                    )) : (
+                      <div className="px-3 py-2 text-sm text-slate-500">No matches</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : reposLoading ? (
+              <p className="text-xs text-slate-500">Loading repositories...</p>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={config.githubRepoOwner || ''}
+                  onChange={(e) => setConfig({ ...config, githubRepoOwner: e.target.value })}
+                  className={inputClass}
+                  placeholder="Owner (e.g., jonasneves)"
+                />
+                <input
+                  type="text"
+                  value={config.githubRepoName || ''}
+                  onChange={(e) => setConfig({ ...config, githubRepoName: e.target.value })}
+                  className={inputClass}
+                  placeholder="Repository (e.g., my-project)"
+                />
+              </div>
+            )}
           </div>
 
           {/* Repository Path */}
