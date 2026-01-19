@@ -366,8 +366,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   return (
     <div className="flex flex-col h-full bg-[#0a0f14]">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
-        {/* Health Ring */}
+
+      {/* Health Ring - fixed header */}
+      <div className="px-3 pt-3 pb-2">
         <HealthRing
           online={stats.online}
           down={stats.down}
