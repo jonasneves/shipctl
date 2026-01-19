@@ -113,6 +113,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     triggerWorkflow,
     triggerAllWorkflows,
     cancelAllRunning,
+    cancelWorkflow,
     deployingCount,
   } = useWorkflowOrchestration({
     githubToken,
@@ -347,7 +348,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           workflowStatus={service.workflowStatus}
           lastRun={lastRun}
           onStartCloud={workflowName && githubToken ? () => triggerWorkflow(workflowName) : undefined}
+          onStopCloud={workflowName && githubToken ? () => cancelWorkflow(workflowName) : undefined}
           cloudTriggering={triggering === workflowName}
+          cloudStopping={triggering === `stopping:${workflowName}`}
           onBuild={service.id === 'chat-api' ? () => runBuild('playground') : undefined}
           buildBusy={buildBusy}
           buildLogTail={buildLogTail}

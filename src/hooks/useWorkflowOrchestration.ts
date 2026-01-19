@@ -165,6 +165,24 @@ export function useWorkflowOrchestration({
     }
   }, [runs, github, onRefresh, onTriggerSuccess, onTriggerError]);
 
+  const cancelWorkflow = useCallback(async (workflowName: string) => {
+    const run = runs.get(workflowName);
+    if (!run || (run.status !== 'in_progress' && run.status !== 'queued')) {
+      return;
+    }
+
+    setTriggering(`stopping:${workflowName}`);
+    try {
+      await github.cancelRun(run.id);
+      onTriggerSuccess?.(`${workflowName} stopped`);
+      setTimeout(() => onRefresh?.(), 2000);
+    } catch (err: any) {
+      onTriggerError?.(workflowName, err.message);
+    } finally {
+      setTriggering(null);
+    }
+  }, [runs, github, onRefresh, onTriggerSuccess, onTriggerError]);
+
   // Deploying count for stats - only counts non-service workflows (traditional CI/CD)
   // Service workflows with in_progress status means they're "running", not "deploying"
   const deployingCount = useMemo(() => {
@@ -198,6 +216,7 @@ export function useWorkflowOrchestration({
     triggerWorkflow,
     triggerAllWorkflows,
     cancelAllRunning,
+    cancelWorkflow,
     deployingCount,
   };
 }

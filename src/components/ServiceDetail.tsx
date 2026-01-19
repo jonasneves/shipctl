@@ -12,6 +12,7 @@ import {
   Globe,
   Monitor,
   RefreshCw,
+  Square,
 } from 'lucide-react';
 import Sparkline from './Sparkline';
 import type { ServiceStatus } from '../constants/status';
@@ -29,7 +30,9 @@ interface ServiceDetailProps {
   workflowStatus?: 'running' | 'stopped' | 'failed' | 'starting' | 'unknown';
   lastRun?: WorkflowRun | null;
   onStartCloud?: () => void;
+  onStopCloud?: () => void;
   cloudTriggering?: boolean;
+  cloudStopping?: boolean;
   onBuild?: () => void;
   buildBusy?: boolean;
   buildLogTail?: string | null;
@@ -56,7 +59,9 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
   workflowStatus,
   lastRun,
   onStartCloud,
+  onStopCloud,
   cloudTriggering,
+  cloudStopping,
   onBuild,
   buildBusy,
   buildLogTail,
@@ -214,34 +219,56 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                 )}
               </div>
 
-              {/* Show Start when not running, Restart when running */}
-              {workflowStatus === 'running' ? (
-                <button
-                  onClick={onStartCloud}
-                  disabled={cloudTriggering}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {cloudTriggering ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4" />
+              {/* Buttons based on health status */}
+              {isHealthy || workflowStatus === 'running' ? (
+                <div className="flex gap-2">
+                  <button
+                    onClick={onStartCloud}
+                    disabled={cloudTriggering || cloudStopping}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {cloudTriggering ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                    Restart
+                  </button>
+                  {onStopCloud && (
+                    <button
+                      onClick={onStopCloud}
+                      disabled={cloudTriggering || cloudStopping}
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {cloudStopping ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                      Stop
+                    </button>
                   )}
-                  Restart
+                </div>
+              ) : isStarting ? (
+                <button
+                  disabled
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-400 bg-blue-500/10 rounded-xl border border-blue-500/20 cursor-not-allowed"
+                >
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Starting...
                 </button>
               ) : (
                 <button
                   onClick={onStartCloud}
-                  disabled={cloudTriggering || workflowStatus === 'starting'}
+                  disabled={cloudTriggering}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {cloudTriggering ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : workflowStatus === 'starting' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Rocket className="w-4 h-4" />
                   )}
-                  {workflowStatus === 'starting' ? 'Starting...' : 'Start'}
+                  Start
                 </button>
               )}
 

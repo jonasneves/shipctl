@@ -1,5 +1,5 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { RefreshCw, Settings, Zap, RotateCcw, Package, ExternalLink, Square } from 'lucide-react';
+import { RefreshCw, Settings, Zap, RotateCcw, Package, ExternalLink, Square, Github } from 'lucide-react';
 
 interface HealthRingProps {
   online: number;
@@ -115,138 +115,146 @@ const HealthRing: React.FC<HealthRingProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 bg-[#0f1419] rounded-xl border border-[#1e2832]">
-      {/* Health Ring SVG */}
-      <div className="relative flex-shrink-0">
-        <svg width={size} height={size} className="transform -rotate-90">
-          {/* Background track */}
-          <circle
-            cx={center}
-            cy={center}
-            r={radius}
-            fill="none"
-            stroke="#1e2832"
-            strokeWidth={strokeWidth}
-          />
-          {/* Colored arcs */}
-          {arcs}
-        </svg>
-        {/* Center text */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-sm font-semibold ${loading ? 'text-slate-500' : getStatusColor()}`}>
-            {loading ? '...' : total > 0 ? `${online}` : '0'}
-          </span>
+    <div className="bg-[#0f1419] rounded-xl border border-[#1e2832] overflow-hidden">
+      {/* Header - Repo name and actions */}
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e2832]">
+        <div className="flex items-center gap-2 min-w-0">
+          <Github className="w-4 h-4 text-slate-500 flex-shrink-0" />
+          {repoName ? (
+            <span className="text-sm font-medium text-slate-200 truncate">{repoName}</span>
+          ) : (
+            <span className="text-sm text-slate-500">No repository configured</span>
+          )}
         </div>
-      </div>
 
-      {/* Status Info */}
-      <div className="flex-1 min-w-0">
-        {repoName && (
-          <div className="text-[10px] text-slate-600 font-mono truncate mb-0.5">{repoName}</div>
-        )}
-        <div className={`text-sm font-medium ${getStatusColor()}`}>
-          {getStatusText()}
-        </div>
-        <div className="text-[11px] text-slate-500 mt-0.5">
-          {total} service{total !== 1 ? 's' : ''}
-          {deploying > 0 && ` · ${deploying} deploying`}
-        </div>
-      </div>
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {hasActions && !actionsDisabled && (
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className={`p-1.5 rounded-lg transition-all duration-150 ${
+                  menuOpen
+                    ? 'text-white bg-[#1a232e]'
+                    : 'text-slate-400 hover:text-white hover:bg-[#1a232e]'
+                }`}
+                title="Actions"
+                aria-label="Open actions menu"
+              >
+                <Zap className="w-3.5 h-3.5" />
+              </button>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 flex-shrink-0">
-        {/* Actions dropdown - left of refresh */}
-        {hasActions && !actionsDisabled && (
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className={`p-2 rounded-lg transition-all duration-150 ${
-                menuOpen
-                  ? 'text-white bg-[#1a232e]'
-                  : 'text-slate-400 hover:text-white hover:bg-[#1a232e]'
-              }`}
-              title="Actions"
-              aria-label="Open actions menu"
-            >
-              <Zap className="w-4 h-4" />
-            </button>
-
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-[#1a232e] border border-[#2a3544] rounded-lg shadow-xl z-50">
-                {onRestartAll && (
-                  <button
-                    onClick={() => { onRestartAll(); setMenuOpen(false); }}
-                    disabled={isRestarting || isStopping}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <RotateCcw className={`w-3.5 h-3.5 ${isRestarting ? 'animate-spin' : ''}`} />
-                    {isRestarting ? 'Restarting...' : 'Restart All'}
-                  </button>
-                )}
-                {onStopAll && (
-                  <button
-                    onClick={() => { onStopAll(); setMenuOpen(false); }}
-                    disabled={isRestarting || isStopping}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Square className={`w-3.5 h-3.5 ${isStopping ? 'animate-pulse' : ''}`} />
-                    {isStopping ? 'Stopping...' : 'Stop All'}
-                  </button>
-                )}
-                {onBuildImages && (
-                  <button
-                    onClick={() => { onBuildImages(); setMenuOpen(false); }}
-                    disabled={isBuildingImages}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    <Package className={`w-3.5 h-3.5 ${isBuildingImages ? 'animate-pulse' : ''}`} />
-                    {isBuildingImages ? 'Building...' : 'Build Images'}
-                  </button>
-                )}
-                {githubActionsUrl && (
-                  <>
-                    <div className="my-1 border-t border-[#2a3544]" />
-                    <a
-                      href={githubActionsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setMenuOpen(false)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] transition-colors"
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-[#1a232e] border border-[#2a3544] rounded-lg shadow-xl z-50">
+                  {onRestartAll && (
+                    <button
+                      onClick={() => { onRestartAll(); setMenuOpen(false); }}
+                      disabled={isRestarting || isStopping}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      View All Actions
-                    </a>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                      <RotateCcw className={`w-3.5 h-3.5 ${isRestarting ? 'animate-spin' : ''}`} />
+                      {isRestarting ? 'Restarting...' : 'Restart All'}
+                    </button>
+                  )}
+                  {onStopAll && (
+                    <button
+                      onClick={() => { onStopAll(); setMenuOpen(false); }}
+                      disabled={isRestarting || isStopping}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Square className={`w-3.5 h-3.5 ${isStopping ? 'animate-pulse' : ''}`} />
+                      {isStopping ? 'Stopping...' : 'Stop All'}
+                    </button>
+                  )}
+                  {onBuildImages && (
+                    <button
+                      onClick={() => { onBuildImages(); setMenuOpen(false); }}
+                      disabled={isBuildingImages}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Package className={`w-3.5 h-3.5 ${isBuildingImages ? 'animate-pulse' : ''}`} />
+                      {isBuildingImages ? 'Building...' : 'Build Images'}
+                    </button>
+                  )}
+                  {githubActionsUrl && (
+                    <>
+                      <div className="my-1 border-t border-[#2a3544]" />
+                      <a
+                        href={githubActionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        View All Actions
+                      </a>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
-        <button
-          onClick={onRefresh}
-          disabled={loading}
-          className={`p-2 rounded-lg transition-all duration-150 ${
-            loading
-              ? 'text-slate-600 cursor-not-allowed'
-              : 'text-slate-400 hover:text-white hover:bg-[#1a232e]'
-          }`}
-          title="Refresh (R)"
-          aria-label="Refresh status"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-
-        {onSettings && (
           <button
-            onClick={onSettings}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a232e] transition-all duration-150"
-            title="Settings"
-            aria-label="Open settings"
+            onClick={onRefresh}
+            disabled={loading}
+            className={`p-1.5 rounded-lg transition-all duration-150 ${
+              loading
+                ? 'text-slate-600 cursor-not-allowed'
+                : 'text-slate-400 hover:text-white hover:bg-[#1a232e]'
+            }`}
+            title="Refresh (R)"
+            aria-label="Refresh status"
           >
-            <Settings className="w-4 h-4" />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
-        )}
+
+          {onSettings && (
+            <button
+              onClick={onSettings}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a232e] transition-all duration-150"
+              title="Settings"
+              aria-label="Open settings"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        {/* Health Ring SVG */}
+        <div className="relative flex-shrink-0">
+          <svg width={size} height={size} className="transform -rotate-90">
+            <circle
+              cx={center}
+              cy={center}
+              r={radius}
+              fill="none"
+              stroke="#1e2832"
+              strokeWidth={strokeWidth}
+            />
+            {arcs}
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className={`text-sm font-semibold ${loading ? 'text-slate-500' : getStatusColor()}`}>
+              {loading ? '...' : total > 0 ? `${online}` : '0'}
+            </span>
+          </div>
+        </div>
+
+        {/* Status Info */}
+        <div className="flex-1 min-w-0">
+          <div className={`text-sm font-medium ${getStatusColor()}`}>
+            {getStatusText()}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-0.5">
+            {total} service{total !== 1 ? 's' : ''}
+            {deploying > 0 && ` · ${deploying} deploying`}
+          </div>
+        </div>
       </div>
     </div>
   );
