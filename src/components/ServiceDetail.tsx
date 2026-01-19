@@ -83,6 +83,21 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
+  // Format duration from timestamps
+  const formatDuration = (start: string, end?: string) => {
+    const startTime = new Date(start).getTime();
+    const endTime = end ? new Date(end).getTime() : Date.now();
+    const diffMs = endTime - startTime;
+
+    const seconds = Math.floor(diffMs / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  };
+
   // Deployment status icon
   const DeployStatusIcon = () => {
     if (!lastRun) return null;
@@ -246,7 +261,12 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {lastRun.status === 'in_progress' || lastRun.status === 'queued'
+                        ? formatDuration(lastRun.created_at)
+                        : formatDuration(lastRun.created_at, lastRun.updated_at)}
+                    </span>
                     {lastRun.html_url && (
                       <a
                         href={lastRun.html_url}

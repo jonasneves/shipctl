@@ -102,6 +102,18 @@ class GitHubService {
 
     return response.status === 204;
   }
+
+  async cancelRun(runId: number): Promise<boolean> {
+    const response = await fetch(
+      `https://api.github.com/repos/${this.owner}/${this.repo}/actions/runs/${runId}/cancel`,
+      {
+        method: 'POST',
+        headers: this.headers,
+      }
+    );
+
+    return response.status === 202;
+  }
 }
 
 export { GitHubService };

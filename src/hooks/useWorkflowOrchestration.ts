@@ -8,6 +8,8 @@ interface UseWorkflowOrchestrationProps {
   githubRepoName: string;
   onActiveDeploymentsChange?: (count: number) => void;
   onRefresh?: () => void;
+  onTriggerSuccess?: (workflowName: string) => void;
+  onTriggerError?: (workflowName: string, error: string) => void;
 }
 
 export function useWorkflowOrchestration({
@@ -16,6 +18,8 @@ export function useWorkflowOrchestration({
   githubRepoName,
   onActiveDeploymentsChange,
   onRefresh,
+  onTriggerSuccess,
+  onTriggerError,
 }: UseWorkflowOrchestrationProps) {
   const [workflows, setWorkflows] = useState<Map<string, WorkflowInfo>>(new Map());
   const [runs, setRuns] = useState<Map<string, WorkflowRun | null>>(new Map());
@@ -104,14 +108,14 @@ export function useWorkflowOrchestration({
       if (success) {
         // Mark as recently triggered for immediate "starting" feedback
         setRecentlyTriggered(prev => new Set(prev).add(workflowName));
+        onTriggerSuccess?.(workflowName);
 
         // Aggressive refresh polling: 3s, 6s, 10s
-        // This catches the new run quickly and clears recentlyTriggered once we see queued/in_progress
         setTimeout(() => onRefresh?.(), 3000);
         setTimeout(() => onRefresh?.(), 6000);
         setTimeout(() => onRefresh?.(), 10000);
 
-        // Clear from recentlyTriggered after 15s (by then we should have real status)
+        // Clear from recentlyTriggered after 15s
         setTimeout(() => {
           setRecentlyTriggered(prev => {
             const next = new Set(prev);
@@ -120,14 +124,17 @@ export function useWorkflowOrchestration({
           });
         }, 15000);
       } else {
-        setError(`Failed to trigger ${workflowName}`);
+        const errorMsg = `Failed to trigger ${workflowName}`;
+        setError(errorMsg);
+        onTriggerError?.(workflowName, errorMsg);
       }
     } catch (err: any) {
       setError(err.message);
+      onTriggerError?.(workflowName, err.message);
     } finally {
       setTriggering(null);
     }
-  }, [workflows, github, onRefresh]);
+  }, [workflows, github, onRefresh, onTriggerSuccess, onTriggerError]);
 
   const triggerAllWorkflows = useCallback(async () => {
     const allServiceWorkflows = WORKFLOWS.filter(wf => wf.serviceKey);
@@ -136,6 +143,27 @@ export function useWorkflowOrchestration({
     }
     await triggerWorkflow('Chat');
   }, [triggerWorkflow]);
+
+  const cancelAllRunning = useCallback(async () => {
+    const runningRuns = Array.from(runs.entries())
+      .filter(([_, run]) => run?.status === 'in_progress' || run?.status === 'queued')
+      .map(([name, run]) => ({ name, run: run! }));
+
+    if (runningRuns.length === 0) return;
+
+    setTriggering('stopping');
+    try {
+      for (const { name, run } of runningRuns) {
+        await github.cancelRun(run.id);
+        onTriggerSuccess?.(`${name} stopped`);
+      }
+      setTimeout(() => onRefresh?.(), 2000);
+    } catch (err: any) {
+      onTriggerError?.('Stop All', err.message);
+    } finally {
+      setTriggering(null);
+    }
+  }, [runs, github, onRefresh, onTriggerSuccess, onTriggerError]);
 
   // Deploying count for stats - only counts non-service workflows (traditional CI/CD)
   // Service workflows with in_progress status means they're "running", not "deploying"
@@ -169,6 +197,7 @@ export function useWorkflowOrchestration({
     fetchLatestRuns,
     triggerWorkflow,
     triggerAllWorkflows,
+    cancelAllRunning,
     deployingCount,
   };
 }

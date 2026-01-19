@@ -82,11 +82,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === 'HEALTH_CHECK') {
-    console.log('[background] HEALTH_CHECK request:', message.url);
-    handleHealthCheck(message.url, message.timeout).then(result => {
-      console.log('[background] HEALTH_CHECK response:', result);
-      sendResponse(result);
-    });
+    handleHealthCheck(message.url, message.timeout).then(sendResponse);
     return true;
   }
 
@@ -108,7 +104,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function handleHealthCheck(url, timeout = 5000) {
-  console.log('[background] Health check for:', url);
   const start = Date.now();
   try {
     const response = await fetch(`${url}/health`, {
@@ -116,10 +111,8 @@ async function handleHealthCheck(url, timeout = 5000) {
       signal: AbortSignal.timeout(timeout),
     });
     const latency = Date.now() - start;
-    console.log('[background] Health check result:', url, response.ok, response.status);
     return { status: response.ok ? 'ok' : 'down', latency };
-  } catch (err) {
-    console.log('[background] Health check error:', url, err);
+  } catch {
     return { status: 'down' };
   }
 }

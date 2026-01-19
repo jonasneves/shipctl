@@ -6,6 +6,7 @@ import ServiceRow from './ServiceRow';
 import ServiceDetail from './ServiceDetail';
 import WorkflowRow from './WorkflowRow';
 import ErrorDisplay from './ErrorDisplay';
+import { ToastContainer, type ToastMessage } from './Toast';
 import { SERVICES, WORKFLOWS, WORKFLOW_PATHS, SERVICE_TO_WORKFLOW, BUILD_WORKFLOW, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
 import { useHealthMonitoring } from '../hooks/useHealthMonitoring';
 import { useBackendControl } from '../hooks/useBackendControl';
@@ -43,7 +44,16 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const refreshInFlight = useRef(false);
+
+  const addToast = useCallback((type: 'success' | 'error', message: string) => {
+    setToasts(prev => [...prev, { id: crypto.randomUUID(), type, message }]);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   // Health monitoring hook
   const {
@@ -102,6 +112,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     fetchLatestRuns,
     triggerWorkflow,
     triggerAllWorkflows,
+    cancelAllRunning,
     deployingCount,
   } = useWorkflowOrchestration({
     githubToken,
@@ -109,6 +120,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     githubRepoName,
     onActiveDeploymentsChange,
     onRefresh: refresh,
+    onTriggerSuccess: (name) => addToast('success', `${name} triggered`),
+    onTriggerError: (name, err) => addToast('error', `${name}: ${err}`),
   });
 
   // Full refresh including workflows
@@ -268,12 +281,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       }
     }
 
-    // Sort and filter services within each section
+    // Sort and filter within each section
     for (const section of sectionMap.values()) {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         section.services = section.services.filter(s =>
           s.name.toLowerCase().includes(query) || s.id.toLowerCase().includes(query)
+        );
+        section.standaloneWorkflows = section.standaloneWorkflows.filter(w =>
+          w.name.toLowerCase().includes(query)
         );
       }
       section.services.sort((a, b) => {
@@ -339,7 +355,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           backendPid={backendPid}
           backendBusy={backendBusy}
           backendLogTail={backendLogTail}
-          isLocalChat={isLocalChat}
+          isLocalChat={isLocalChat && service.id === 'chat-api'}
           onStart={startBackend}
           onStop={stopBackend}
           onFetchLogs={fetchBackendLogs}
@@ -352,6 +368,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   // Main list view
   return (
     <div className="flex flex-col h-full bg-[#0a0f14]">
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">
         {/* Health Ring */}
         <HealthRing
@@ -363,8 +380,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onRefresh={fullRefresh}
           onSettings={onOpenSettings}
           onRestartAll={githubToken ? triggerAllWorkflows : undefined}
+          onStopAll={githubToken ? cancelAllRunning : undefined}
           onBuildImages={githubToken && buildWorkflowName ? () => triggerWorkflow(buildWorkflowName) : undefined}
-          isRestarting={!!triggering && triggering !== buildWorkflowName}
+          isRestarting={!!triggering && triggering !== buildWorkflowName && triggering !== 'stopping'}
+          isStopping={triggering === 'stopping'}
           isBuildingImages={triggering === buildWorkflowName}
           actionsDisabled={!githubToken}
           githubActionsUrl={githubActionsUrl}
