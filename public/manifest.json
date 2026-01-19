@@ -21,7 +21,8 @@
   "permissions": [
     "sidePanel",
     "storage",
-    "nativeMessaging"
+    "nativeMessaging",
+    "identity"
   ],
   "host_permissions": [
     "http://localhost:*/*",

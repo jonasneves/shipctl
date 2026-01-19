@@ -43,6 +43,7 @@ export type ProfileId = 'remote_all' | 'local_chat_remote_models' | 'local_all' 
 
 export interface EnvConfig {
   githubToken: string;
+  githubUsername?: string;
   githubRepoOwner: string;
   githubRepoName: string;
   profile: ProfileId;
@@ -94,6 +95,7 @@ export function normalizeEnvConfig(raw: unknown): EnvConfig {
 
   return {
     githubToken: typeof merged.githubToken === 'string' ? merged.githubToken : DEFAULT_CONFIG.githubToken,
+    githubUsername: typeof merged.githubUsername === 'string' ? merged.githubUsername : undefined,
     githubRepoOwner: typeof merged.githubRepoOwner === 'string' ? merged.githubRepoOwner : DEFAULT_CONFIG.githubRepoOwner,
     githubRepoName: typeof merged.githubRepoName === 'string' ? merged.githubRepoName : DEFAULT_CONFIG.githubRepoName,
     profile,
@@ -101,6 +103,7 @@ export function normalizeEnvConfig(raw: unknown): EnvConfig {
     modelsBaseDomain: typeof merged.modelsBaseDomain === 'string' ? merged.modelsBaseDomain : DEFAULT_CONFIG.modelsBaseDomain,
     modelsUseHttps: typeof merged.modelsUseHttps === 'boolean' ? merged.modelsUseHttps : DEFAULT_CONFIG.modelsUseHttps,
     repoPath: typeof merged.repoPath === 'string' ? merged.repoPath : undefined,
+    pythonPath: typeof merged.pythonPath === 'string' ? merged.pythonPath : undefined,
   };
 }
 

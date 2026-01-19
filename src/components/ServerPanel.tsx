@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Globe, Eye, EyeOff, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Globe, AlertCircle, CheckCircle, LogOut, Github } from 'lucide-react';
 import { EnvConfig, normalizeEnvConfig, DEFAULT_CONFIG } from '../hooks/useExtensionConfig';
 import ControlPanel from './ControlPanel';
 import ErrorBoundary from './ErrorBoundary';
@@ -9,7 +9,7 @@ import { nativeHost } from '../services/nativeHost';
 const ServerPanel: React.FC = () => {
   const [config, setConfig] = useState<EnvConfig>(DEFAULT_CONFIG);
   const [showConfig, setShowConfig] = useState(false);
-  const [showToken, setShowToken] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{ message: string; variant: 'error' | 'success' } | null>(null);
 
   useEffect(() => {
@@ -18,6 +18,37 @@ const ServerPanel: React.FC = () => {
       setConfig(loadedConfig);
     });
   }, []);
+
+  const handleGitHubConnect = async () => {
+    setOauthLoading(true);
+    setSaveStatus(null);
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GITHUB_OAUTH' });
+      if (response.error) {
+        setSaveStatus({ message: response.error, variant: 'error' });
+      } else {
+        const newConfig = {
+          ...config,
+          githubToken: response.access_token,
+          githubUsername: response.username
+        };
+        setConfig(newConfig);
+        chrome.storage.local.set({ envConfig: newConfig });
+        setSaveStatus({ message: `Connected as ${response.username}`, variant: 'success' });
+      }
+    } catch (err) {
+      setSaveStatus({ message: 'OAuth failed. Try again.', variant: 'error' });
+    } finally {
+      setOauthLoading(false);
+    }
+  };
+
+  const handleGitHubDisconnect = () => {
+    const newConfig = { ...config, githubToken: '', githubUsername: undefined };
+    setConfig(newConfig);
+    chrome.storage.local.set({ envConfig: newConfig });
+    setSaveStatus({ message: 'Disconnected from GitHub', variant: 'success' });
+  };
 
   const saveConfig = async () => {
     setSaveStatus(null);
@@ -58,48 +89,43 @@ const ServerPanel: React.FC = () => {
             <h2 className="text-sm font-semibold text-white">Settings</h2>
           </div>
 
-          {/* GitHub Token */}
+          {/* GitHub Connection */}
           <div className="p-4 rounded-xl bg-[#0f1419] border border-[#1e2832]">
-            <label htmlFor="github-token" className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
-              <Globe className="w-3.5 h-3.5 text-slate-500" />
-              GitHub Token
-            </label>
-            <div className="relative">
-              <input
-                id="github-token"
-                type={showToken ? 'text' : 'password'}
-                value={config.githubToken}
-                onChange={(e) => setConfig({ ...config, githubToken: e.target.value })}
-                className={`${inputClass} pr-10`}
-                placeholder="github_pat_..."
-              />
-              <button
-                type="button"
-                onClick={() => setShowToken(!showToken)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-                aria-label={showToken ? 'Hide token' : 'Show token'}
-              >
-                {showToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+            <div className="flex items-center gap-2 text-xs font-medium text-slate-300 mb-3">
+              <Github className="w-3.5 h-3.5 text-slate-500" />
+              GitHub Account
             </div>
-            {!config.githubToken ? (
-              <p className="flex items-center gap-1.5 mt-3 text-[11px] text-amber-400/90">
-                <AlertCircle className="w-3 h-3" />
-                Required for deployments.{' '}
-                <a
-                  href="https://github.com/settings/tokens/new?description=ShipCTL&scopes=repo,workflow"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-amber-300 inline-flex items-center gap-1"
+            {config.githubToken ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm text-slate-200">
+                    {config.githubUsername || 'Connected'}
+                  </span>
+                </div>
+                <button
+                  onClick={handleGitHubDisconnect}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
-                  Create token <ExternalLink className="w-2.5 h-2.5" />
-                </a>
-              </p>
+                  <LogOut className="w-3 h-3" />
+                  Disconnect
+                </button>
+              </div>
             ) : (
-              <p className="flex items-center gap-1.5 mt-3 text-[11px] text-emerald-400/90">
-                <CheckCircle className="w-3 h-3" />
-                Token configured
-              </p>
+              <>
+                <button
+                  onClick={handleGitHubConnect}
+                  disabled={oauthLoading}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#238636] hover:bg-[#2ea043] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-medium text-white transition-colors"
+                >
+                  <Github className="w-4 h-4" />
+                  {oauthLoading ? 'Connecting...' : 'Connect with GitHub'}
+                </button>
+                <p className="flex items-center gap-1.5 mt-3 text-[11px] text-amber-400/90">
+                  <AlertCircle className="w-3 h-3" />
+                  Required for deployments
+                </p>
+              </>
             )}
           </div>
 

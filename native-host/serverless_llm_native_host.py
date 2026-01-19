@@ -17,10 +17,8 @@ HOST_NAME = "io.neevs.serverless_llm"
 
 
 def _read_env_config() -> Dict[str, str]:
-    """Read configuration from .shipctl.env file in the same directory as this script"""
     config = {}
-    here = Path(__file__).resolve()
-    env_file = here.parent / ".shipctl.env"
+    env_file = Path(__file__).resolve().parent / ".shipctl.env"
 
     if not env_file.exists():
         return config
@@ -28,10 +26,8 @@ def _read_env_config() -> Dict[str, str]:
     try:
         for line in env_file.read_text("utf-8").splitlines():
             line = line.strip()
-            # Skip comments and empty lines
             if not line or line.startswith("#"):
                 continue
-            # Parse KEY=VALUE
             if "=" in line:
                 key, value = line.split("=", 1)
                 config[key.strip()] = value.strip()
@@ -62,21 +58,18 @@ def _write_message(message: Dict[str, Any]) -> None:
 
 
 def _find_repo_root(custom_path: Optional[str] = None) -> Path:
-    # Try custom path from message first
     if custom_path:
         candidate = Path(custom_path).expanduser().resolve()
         if (candidate / "Makefile").exists() and (candidate / "app" / "chat" / "backend" / "chat_server.py").exists():
             return candidate
         raise RuntimeError(f"Custom repo path invalid: {custom_path} (expected Makefile and app/chat/backend/chat_server.py)")
 
-    # Try env config file
     env_config = _read_env_config()
     if "REPO_PATH" in env_config and env_config["REPO_PATH"]:
         candidate = Path(env_config["REPO_PATH"]).expanduser().resolve()
         if (candidate / "Makefile").exists() and (candidate / "app" / "chat" / "backend" / "chat_server.py").exists():
             return candidate
 
-    # Fall back to auto-detection
     here = Path(__file__).resolve()
     for parent in [here.parent, *here.parents]:
         if (parent / "Makefile").exists() and (parent / "app" / "chat" / "backend" / "chat_server.py").exists():
@@ -132,16 +125,9 @@ def _tail_file(path: Path, max_lines: int = 50) -> str:
 
 def _augment_path_for_node(env: Dict[str, str]) -> Dict[str, str]:
     path_entries = []
-
-    def add_entry(entry: Path) -> None:
-        try:
-            if entry.is_dir():
-                path_entries.append(str(entry))
-        except Exception:
-            return
-
     home = Path.home()
-    for entry in (
+
+    candidates = [
         Path("/opt/homebrew/bin"),
         Path("/usr/local/bin"),
         Path("/usr/bin"),
@@ -153,17 +139,21 @@ def _augment_path_for_node(env: Dict[str, str]) -> Dict[str, str]:
         home / ".local" / "share" / "mise" / "shims",
         home / ".fnm",
         home / ".fnm" / "current" / "bin",
-    ):
-        add_entry(entry)
+    ]
 
-    # nvm
     nvm_root = home / ".nvm" / "versions" / "node"
     try:
         if nvm_root.is_dir():
-            for version_dir in sorted(nvm_root.iterdir(), reverse=True):
-                add_entry(version_dir / "bin")
+            candidates.extend(v / "bin" for v in sorted(nvm_root.iterdir(), reverse=True))
     except Exception:
         pass
+
+    for entry in candidates:
+        try:
+            if entry.is_dir():
+                path_entries.append(str(entry))
+        except Exception:
+            pass
 
     existing = env.get("PATH", "")
     combined = ":".join([*path_entries, existing]) if existing else ":".join(path_entries)
@@ -174,7 +164,6 @@ def _augment_path_for_node(env: Dict[str, str]) -> Dict[str, str]:
 
 
 def _find_extension_dir() -> Path:
-    """Find the extension directory from config"""
     env_config = _read_env_config()
     if "EXTENSION_DIR" in env_config and env_config["EXTENSION_DIR"]:
         candidate = Path(env_config["EXTENSION_DIR"]).expanduser().resolve()
@@ -189,7 +178,6 @@ def _run_make_target(repo_root: Path, target: str, log_path: Path) -> dict:
     if target not in allowed_targets:
         return {"ok": False, "error": f"Unsupported make target: {target}"}
 
-    # Extension builds run in extension directory, not serverless-llm repo
     if target == "build-extension":
         try:
             working_dir = _find_extension_dir()
@@ -344,7 +332,6 @@ def main() -> None:
     if message is None:
         return
 
-    # Get custom repo path from message if provided
     custom_repo_path = message.get("repoPath")
 
     try:
@@ -362,7 +349,6 @@ def main() -> None:
             return
         target = target.strip()
 
-        # Extension builds log to extension directory
         if target == "build-extension":
             try:
                 extension_dir = _find_extension_dir()
@@ -400,34 +386,25 @@ def main() -> None:
 
     if action == "save_config":
         try:
-            here = Path(__file__).resolve()
-            env_file = here.parent / ".shipctl.env"
-
-            # Preserve existing EXTENSION_DIR from config
+            env_file = Path(__file__).resolve().parent / ".shipctl.env"
             existing_config = _read_env_config()
             extension_dir = existing_config.get("EXTENSION_DIR", "")
-
-            lines = []
-            lines.append("# shipctl configuration")
-            lines.append("# Auto-generated by extension settings / install script")
-            lines.append("")
-
             python_path = message.get("pythonPath", "").strip()
             repo_path = message.get("repoPath", "").strip()
 
-            lines.append("# Path to Python interpreter (for native host)")
-            lines.append(f"PYTHON_PATH={python_path}")
-            lines.append("")
+            content = f"""# shipctl configuration
+# Auto-generated by extension settings / install script
 
-            lines.append("# Path to serverless-llm repository (for backend operations)")
-            lines.append(f"REPO_PATH={repo_path}")
-            lines.append("")
+# Path to Python interpreter (for native host)
+PYTHON_PATH={python_path}
 
-            lines.append("# Path to extension source directory (set by install script)")
-            lines.append(f"EXTENSION_DIR={extension_dir}")
-            lines.append("")
+# Path to serverless-llm repository (for backend operations)
+REPO_PATH={repo_path}
 
-            env_file.write_text("\n".join(lines), "utf-8")
+# Path to extension source directory (set by install script)
+EXTENSION_DIR={extension_dir}
+"""
+            env_file.write_text(content, "utf-8")
             _write_message({"ok": True, "status": "saved", "path": str(env_file)})
             return
         except Exception as e:

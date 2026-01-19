@@ -1,6 +1,11 @@
 // Background service worker for ShipCTL extension
 // Opens side panel when extension icon is clicked
 
+// OAuth Configuration
+const OAUTH_PROXY_URL = 'https://oauth.neevs.io';
+const GITHUB_CLIENT_ID = 'Ov23liYGP51S3C7hcc8C';
+const GITHUB_SCOPES = 'repo workflow read:user';
+
 // Enable side panel to open when clicking the extension icon
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
@@ -68,6 +73,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     console.log('[background] Invalid message format');
     return;
   }
+
+  if (message.type === 'GITHUB_OAUTH') {
+    handleGitHubOAuth().then(sendResponse).catch(err => {
+      sendResponse({ error: err.message });
+    });
+    return true;
+  }
+
   if (message.type !== 'native_backend') {
     console.log('[background] Message type not native_backend:', message.type);
     return;
@@ -84,3 +97,56 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   return true;
 });
+
+async function handleGitHubOAuth() {
+  if (!chrome.identity || !chrome.identity.launchWebAuthFlow) {
+    throw new Error('OAuth not available. Reload the extension.');
+  }
+
+  const extensionId = chrome.runtime.id;
+  const state = btoa(JSON.stringify({ provider: 'github', extensionId }));
+
+  const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&scope=${encodeURIComponent(GITHUB_SCOPES)}&redirect_uri=${encodeURIComponent(OAUTH_PROXY_URL + '/callback')}&state=${state}`;
+
+  const redirectUrl = await chrome.identity.launchWebAuthFlow({
+    url: authUrl,
+    interactive: true
+  });
+
+  const url = new URL(redirectUrl);
+  const code = url.searchParams.get('code');
+
+  if (!code) {
+    throw new Error('No authorization code received');
+  }
+
+  const tokenResponse = await fetch(`${OAUTH_PROXY_URL}/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, provider: 'github', client_id: GITHUB_CLIENT_ID })
+  });
+
+  const tokenData = await tokenResponse.json();
+
+  if (tokenData.error) {
+    throw new Error(tokenData.error);
+  }
+
+  const userResponse = await fetch('https://api.github.com/user', {
+    headers: {
+      'Authorization': `Bearer ${tokenData.access_token}`,
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+
+  if (!userResponse.ok) {
+    throw new Error('Failed to get user info');
+  }
+
+  const userData = await userResponse.json();
+
+  return {
+    access_token: tokenData.access_token,
+    username: userData.login
+  };
+}

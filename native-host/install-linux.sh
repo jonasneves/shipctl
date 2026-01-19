@@ -76,13 +76,10 @@ pick_python() {
 
 PYTHON_BIN="$(pick_python)"
 
-# Update shebang in Python file directly
 sed -i.bak "1s|.*|#!$PYTHON_BIN|" "$PY"
 rm -f "$PY.bak"
 chmod +x "$PY"
 
-# Create config file in native-host directory
-# Use REPO_PATH from existing config or try to find serverless-llm sibling
 REPO_PATH="${CONFIG_REPO_PATH:-}"
 if [[ -z "$REPO_PATH" && -d "$ROOT_DIR/serverless-llm" ]]; then
   REPO_PATH="$ROOT_DIR/serverless-llm"
