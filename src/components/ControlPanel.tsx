@@ -377,6 +377,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           deploying={stats.deploying}
           total={stats.total}
           loading={loading}
+          repoName={githubRepoOwner && githubRepoName ? `${githubRepoOwner}/${githubRepoName}` : undefined}
           onRefresh={fullRefresh}
           onSettings={onOpenSettings}
           onRestartAll={githubToken ? triggerAllWorkflows : undefined}

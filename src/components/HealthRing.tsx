@@ -141,6 +141,9 @@ const HealthRing: React.FC<HealthRingProps> = ({
 
       {/* Status Info */}
       <div className="flex-1 min-w-0">
+        {repoName && (
+          <div className="text-[10px] text-slate-600 font-mono truncate mb-0.5">{repoName}</div>
+        )}
         <div className={`text-sm font-medium ${getStatusColor()}`}>
           {getStatusText()}
         </div>
