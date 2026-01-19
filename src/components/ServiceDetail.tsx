@@ -32,8 +32,10 @@ interface ServiceDetailProps {
   lastRun?: WorkflowRun | null;
   onStartCloud?: () => void;
   onStopCloud?: () => void;
+  onBuildCloud?: () => void;
   cloudTriggering?: boolean;
   cloudStopping?: boolean;
+  cloudBuilding?: boolean;
   onBuild?: () => void;
   buildBusy?: boolean;
   buildLogTail?: string | null;
@@ -62,8 +64,10 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
   lastRun,
   onStartCloud,
   onStopCloud,
+  onBuildCloud,
   cloudTriggering,
   cloudStopping,
+  cloudBuilding,
   onBuild,
   buildBusy,
   buildLogTail,
@@ -80,6 +84,7 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
 }) => {
   const [logsExpanded, setLogsExpanded] = useState(false);
   const logsRef = useRef<HTMLPreElement>(null);
+  const buildLogsRef = useRef<HTMLPreElement>(null);
 
   // Auto-fetch logs when local backend is shown
   useEffect(() => {
@@ -101,6 +106,13 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
       logsRef.current.scrollTop = logsRef.current.scrollHeight;
     }
   }, [logsExpanded, backendLogTail]);
+
+  // Auto-scroll build logs to bottom
+  useEffect(() => {
+    if (buildLogsRef.current) {
+      buildLogsRef.current.scrollTop = buildLogsRef.current.scrollHeight;
+    }
+  }, [buildLogTail]);
 
   // Get last line of logs
   const lastLogLine = backendLogTail?.trim().split('\n').pop() || null;
@@ -129,6 +141,39 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
     if (hours > 0) return `${hours}h ${minutes % 60}m`;
     if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
     return `${seconds}s`;
+  };
+
+  // Cloud status helpers
+  const isWorkflowBad = workflowStatus === 'stopped' || workflowStatus === 'failed';
+
+  const getCloudBannerBg = () => {
+    if (isHealthy) return 'bg-emerald-500/10';
+    if (isStarting) return 'bg-blue-500/10';
+    if (isDown || isWorkflowBad) return 'bg-red-500/10';
+    return 'bg-slate-500/10';
+  };
+
+  const getCloudDotClass = () => {
+    if (isHealthy) return 'bg-emerald-400';
+    if (isStarting) return 'bg-blue-400 animate-pulse';
+    if (isDown || isWorkflowBad) return 'bg-red-400';
+    return 'bg-slate-400';
+  };
+
+  const getCloudTextClass = () => {
+    if (isHealthy) return 'text-emerald-400';
+    if (isStarting) return 'text-blue-400';
+    if (isDown || isWorkflowBad) return 'text-red-400';
+    return 'text-slate-400';
+  };
+
+  const getCloudStatusText = () => {
+    if (isHealthy) return 'Healthy';
+    if (isStarting) return 'Starting...';
+    if (workflowStatus === 'stopped') return 'Stopped';
+    if (workflowStatus === 'failed') return 'Failed';
+    if (isDown) return 'Down';
+    return 'Checking...';
   };
 
   // Deployment status icon
@@ -206,32 +251,12 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
               </div>
 
               {/* Cloud status banner */}
-              <div className={`p-3 rounded-xl border border-[#1e2832] ${
-                isHealthy ? 'bg-emerald-500/10' :
-                isStarting ? 'bg-blue-500/10' :
-                isDown || workflowStatus === 'stopped' || workflowStatus === 'failed' ? 'bg-red-500/10' :
-                'bg-slate-500/10'
-              }`}>
+              <div className={`p-3 rounded-xl border border-[#1e2832] ${getCloudBannerBg()}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      isHealthy ? 'bg-emerald-400' :
-                      isStarting ? 'bg-blue-400 animate-pulse' :
-                      isDown || workflowStatus === 'stopped' || workflowStatus === 'failed' ? 'bg-red-400' :
-                      'bg-slate-400'
-                    }`} />
-                    <span className={`text-sm font-medium ${
-                      isHealthy ? 'text-emerald-400' :
-                      isStarting ? 'text-blue-400' :
-                      isDown || workflowStatus === 'stopped' || workflowStatus === 'failed' ? 'text-red-400' :
-                      'text-slate-400'
-                    }`}>
-                      {isHealthy ? 'Healthy' :
-                       isStarting ? 'Starting...' :
-                       workflowStatus === 'stopped' ? 'Stopped' :
-                       workflowStatus === 'failed' ? 'Failed' :
-                       isDown ? 'Down' :
-                       'Checking...'}
+                    <div className={`w-2 h-2 rounded-full ${getCloudDotClass()}`} />
+                    <span className={`text-sm font-medium ${getCloudTextClass()}`}>
+                      {getCloudStatusText()}
                     </span>
                   </div>
                   {isHealthy && latency && (
@@ -250,9 +275,23 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
               {/* Buttons based on health status */}
               {isHealthy || workflowStatus === 'running' ? (
                 <div className="flex gap-2">
+                  {onBuildCloud && (
+                    <button
+                      onClick={onBuildCloud}
+                      disabled={cloudBuilding || cloudTriggering || cloudStopping}
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {cloudBuilding ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Package className="w-4 h-4" />
+                      )}
+                      Build
+                    </button>
+                  )}
                   <button
                     onClick={onStartCloud}
-                    disabled={cloudTriggering || cloudStopping}
+                    disabled={cloudTriggering || cloudStopping || cloudBuilding}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {cloudTriggering ? (
@@ -265,7 +304,7 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                   {onStopCloud && (
                     <button
                       onClick={onStopCloud}
-                      disabled={cloudTriggering || cloudStopping}
+                      disabled={cloudTriggering || cloudStopping || cloudBuilding}
                       className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {cloudStopping ? (
@@ -278,26 +317,58 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                   )}
                 </div>
               ) : isStarting ? (
-                <button
-                  disabled
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-400 bg-blue-500/10 rounded-xl border border-blue-500/20 cursor-not-allowed"
-                >
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Starting...
-                </button>
-              ) : (
-                <button
-                  onClick={onStartCloud}
-                  disabled={cloudTriggering}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {cloudTriggering ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Rocket className="w-4 h-4" />
+                <div className="flex gap-2">
+                  {onBuildCloud && (
+                    <button
+                      onClick={onBuildCloud}
+                      disabled={cloudBuilding}
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {cloudBuilding ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Package className="w-4 h-4" />
+                      )}
+                      Build
+                    </button>
                   )}
-                  Start
-                </button>
+                  <button
+                    disabled
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-400 bg-blue-500/10 rounded-xl border border-blue-500/20 cursor-not-allowed"
+                  >
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Starting...
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {onBuildCloud && (
+                    <button
+                      onClick={onBuildCloud}
+                      disabled={cloudBuilding || cloudTriggering}
+                      className="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {cloudBuilding ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Package className="w-4 h-4" />
+                      )}
+                      Build
+                    </button>
+                  )}
+                  <button
+                    onClick={onStartCloud}
+                    disabled={cloudTriggering || cloudBuilding}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {cloudTriggering ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Rocket className="w-4 h-4" />
+                    )}
+                    Start
+                  </button>
+                </div>
               )}
 
               {/* Last deployment info */}
@@ -425,34 +496,24 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                 </div>
               )}
 
-              {/* Build button */}
-              {onBuild && (
-                <div className="space-y-2">
-                  <button
-                    onClick={onBuild}
-                    disabled={buildBusy}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {buildBusy ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Package className="w-4 h-4" />
-                    )}
-                    Build
-                  </button>
-
-                  {buildLogTail && (
-                    <pre className="max-h-32 overflow-auto text-[10px] leading-relaxed bg-[#0a0f14] border border-[#1e2832] rounded-xl p-3 text-slate-400 whitespace-pre-wrap font-mono">
-                      {buildLogTail}
-                    </pre>
-                  )}
-                </div>
-              )}
-
               {/* Server control */}
               {isLocalChat && (
                 <div className="space-y-2">
                   <div className="flex gap-2">
+                    {onBuild && (
+                      <button
+                        onClick={onBuild}
+                        disabled={buildBusy}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {buildBusy ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Package className="w-4 h-4" />
+                        )}
+                        Build
+                      </button>
+                    )}
                     {backendProcess === 'running' ? (
                       <>
                         <button
@@ -495,6 +556,16 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {/* Build logs */}
+                  {buildLogTail && (
+                    <pre
+                      ref={buildLogsRef}
+                      className="max-h-32 overflow-auto text-[10px] leading-relaxed bg-[#0a0f14] border border-[#1e2832] rounded-xl p-3 text-slate-400 whitespace-pre-wrap font-mono"
+                    >
+                      {buildLogTail}
+                    </pre>
+                  )}
                 </div>
               )}
             </div>

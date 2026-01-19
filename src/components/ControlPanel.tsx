@@ -350,8 +350,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           lastRun={lastRun}
           onStartCloud={workflowName && githubToken ? () => triggerWorkflow(workflowName) : undefined}
           onStopCloud={workflowName && githubToken ? () => cancelWorkflow(workflowName) : undefined}
+          onBuildCloud={buildWorkflowName && githubToken ? () => triggerWorkflow(buildWorkflowName) : undefined}
           cloudTriggering={triggering === workflowName}
           cloudStopping={triggering === `stopping:${workflowName}`}
+          cloudBuilding={triggering === buildWorkflowName}
           onBuild={service.id === 'chat-api' ? () => runBuild('playground') : undefined}
           buildBusy={buildBusy}
           buildLogTail={buildLogTail}
