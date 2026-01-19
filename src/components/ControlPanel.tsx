@@ -191,19 +191,14 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   // Workflow status for services (model services use inference.yml)
   const getWorkflowStatusForService = (appId: string): 'running' | 'stopped' | 'failed' | 'starting' | 'unknown' => {
-    // Find inference workflow path
     const inferenceWfPath = Array.from(workflows.keys()).find(p => p.endsWith('inference.yml'));
     if (!inferenceWfPath) return 'unknown';
-
     if (recentlyTriggered.has(inferenceWfPath)) return 'starting';
 
-    // Find run matching this service's model in display_title
     const runsList = activeRuns.get(inferenceWfPath) || [];
-    const run = runsList.find(r =>
-      r.display_title?.toLowerCase().startsWith(appId.toLowerCase())
-    );
-
+    const run = runsList.find(r => r.display_title?.toLowerCase().startsWith(appId.toLowerCase()));
     if (!run) return 'unknown';
+
     if (run.status === 'in_progress') return 'running';
     if (run.status === 'queued') return 'starting';
     if (run.conclusion === 'failure') return 'failed';
@@ -221,9 +216,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   // Map health status to service status
   const healthToStatus = (status: 'ok' | 'down' | 'checking'): 'running' | 'stopped' | 'checking' => {
-    if (status === 'ok') return 'running';
-    if (status === 'down') return 'stopped';
-    return 'checking';
+    const statusMap = { ok: 'running', down: 'stopped', checking: 'checking' } as const;
+    return statusMap[status];
   };
 
   // Build chat-api service data
@@ -253,7 +247,8 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const allServices = useMemo(() =>
     SERVICES.map(service => buildService(service.key, service.name))
-  , [modelHealthStatuses, workflows, activeRuns, recentlyTriggered]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  , [modelHealthStatuses, workflows, activeRuns, recentlyTriggered, publicScheme, publicDomain]);
 
   // Group workflows by their GitHub name
   const workflowSections = useMemo(() => {

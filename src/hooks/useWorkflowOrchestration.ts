@@ -2,6 +2,9 @@ import { useState, useCallback, useMemo } from 'react';
 import { WORKFLOWS } from './useExtensionConfig';
 import { GitHubService, type WorkflowRun, type WorkflowInfo } from '../services/github';
 
+const isRunActive = (run: WorkflowRun): boolean =>
+  run.status === 'in_progress' || run.status === 'queued';
+
 interface UseWorkflowOrchestrationProps {
   githubToken: string;
   githubRepoOwner: string;
@@ -73,9 +76,7 @@ export function useWorkflowOrchestration({
       try {
         const runsList = await github.getActiveRuns(wf.id);
         newActiveRuns.set(path, runsList);
-        activeCount += runsList.filter(r =>
-          r.status === 'in_progress' || r.status === 'queued'
-        ).length;
+        activeCount += runsList.filter(isRunActive).length;
       } catch {
         newActiveRuns.set(path, []);
       }
@@ -139,9 +140,7 @@ export function useWorkflowOrchestration({
     const runningRuns: { path: string; run: WorkflowRun }[] = [];
     for (const [path, runsList] of activeRuns) {
       for (const run of runsList) {
-        if (run.status === 'in_progress' || run.status === 'queued') {
-          runningRuns.push({ path, run });
-        }
+        if (isRunActive(run)) runningRuns.push({ path, run });
       }
     }
 
@@ -181,13 +180,10 @@ export function useWorkflowOrchestration({
     }
   }, [github, onRefresh, onTriggerSuccess, onTriggerError]);
 
-  // Count active runs across all workflows
   const deployingCount = useMemo(() => {
     let count = 0;
     for (const runsList of activeRuns.values()) {
-      count += runsList.filter(r =>
-        r.status === 'in_progress' || r.status === 'queued'
-      ).length;
+      count += runsList.filter(isRunActive).length;
     }
     return count;
   }, [activeRuns]);

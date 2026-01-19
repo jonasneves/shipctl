@@ -82,10 +82,7 @@ class GitHubService {
     workflowIdentifier: number | string,
     inputs?: Record<string, string>
   ): Promise<void> {
-    const body: any = { ref: 'main' };
-    if (inputs) {
-      body.inputs = inputs;
-    }
+    const body = inputs ? { ref: 'main', inputs } : { ref: 'main' };
 
     const response = await fetch(
       `https://api.github.com/repos/${this.owner}/${this.repo}/actions/workflows/${workflowIdentifier}/dispatches`,
