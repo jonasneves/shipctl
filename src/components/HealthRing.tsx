@@ -98,15 +98,14 @@ const HealthRing: React.FC<HealthRingProps> = ({
   // Status text
   const getStatusText = () => {
     if (loading) return 'Checking...';
-    if (down > 0) return `${down} down`;
     if (total === 0) return 'No services';
-    return 'All operational';
+    return `${online} running`;
   };
 
   const getStatusColor = () => {
-    if (down > 0) return 'text-red-400';
     if (deploying > 0) return 'text-blue-400';
-    return 'text-emerald-400';
+    if (online > 0) return 'text-emerald-400';
+    return 'text-slate-400';
   };
 
   return (

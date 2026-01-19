@@ -6,7 +6,7 @@ import ServiceRow from './ServiceRow';
 import ServiceDetail from './ServiceDetail';
 import WorkflowRow from './WorkflowRow';
 import ErrorDisplay from './ErrorDisplay';
-import { SERVICES, WORKFLOWS, WORKFLOW_PATHS, SERVICE_TO_WORKFLOW, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
+import { SERVICES, WORKFLOWS, WORKFLOW_PATHS, SERVICE_TO_WORKFLOW, BUILD_WORKFLOW, REGISTRY_CONFIG } from '../hooks/useExtensionConfig';
 import { useHealthMonitoring } from '../hooks/useHealthMonitoring';
 import { useBackendControl } from '../hooks/useBackendControl';
 import { useWorkflowOrchestration } from '../hooks/useWorkflowOrchestration';
@@ -173,6 +173,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
   // - queued = service is starting up
   // - recentlyTriggered = user just clicked Start, show "starting" immediately
   const getWorkflowStatusForService = (appId: string): 'running' | 'stopped' | 'failed' | 'starting' | 'unknown' => {
+    // chat-api maps to 'Chat' workflow (not in generated SERVICE_TO_WORKFLOW)
     const workflowName = appId === 'chat-api' ? 'Chat' : SERVICE_TO_WORKFLOW.get(appId) || null;
     if (!workflowName) return 'unknown';
 
@@ -228,47 +229,73 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     ...SERVICES.map(service => buildService(service.key, service.name))
   ], [backendHealth, modelHealthStatuses, runs, recentlyTriggered]);
 
-  // Filter and sort services
-  const filteredServices = useMemo(() => {
-    let services = [...allServices];
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      services = services.filter(s =>
-        s.name.toLowerCase().includes(query) || s.id.toLowerCase().includes(query)
-      );
-    }
-    // Sort: problems first, then starting, then healthy, then checking
-    services.sort((a, b) => {
-      const getScore = (s: typeof a) => {
-        const isDown = s.status === 'stopped' || s.status === 'down';
-        const isWorkflowStopped = s.workflowStatus === 'stopped' || s.workflowStatus === 'failed';
-        const isStarting = s.workflowStatus === 'starting';
-        if (isDown || isWorkflowStopped) return 4; // Problems first
-        if (isStarting) return 3;
-        if (s.status === 'running' || s.status === 'ok') return 2;
-        return 1;
-      };
-      const diff = getScore(b) - getScore(a);
-      return diff !== 0 ? diff : a.name.localeCompare(b.name);
-    });
-    return services;
-  }, [allServices, searchQuery]);
+  // Group workflows by path to create sections
+  const workflowSections = useMemo(() => {
+    const sectionMap = new Map<string, {
+      name: string;
+      services: typeof allServices;
+      standaloneWorkflows: { name: string; workflowInfo: any; run: any }[];
+    }>();
 
-  // Standalone workflows (non-service workflows like "Build Images")
-  const standaloneWorkflows = useMemo(() => {
-    return WORKFLOWS
-      .filter(wf => !wf.serviceKey && wf.name !== 'Chat')  // Exclude service workflows and Chat
-      .map(wf => ({
-        name: wf.name,
-        workflowInfo: workflows.get(wf.name),
-        run: runs.get(wf.name),
-      }));
-  }, [workflows, runs]);
+    // Group workflows by path
+    for (const wf of WORKFLOWS) {
+      const sectionName = wf.path.replace('.yml', '');
+      if (!sectionMap.has(sectionName)) {
+        sectionMap.set(sectionName, { name: sectionName, services: [], standaloneWorkflows: [] });
+      }
+      const section = sectionMap.get(sectionName)!;
+
+      if (wf.serviceKey) {
+        // Service-backed workflow
+        const service = allServices.find(s => s.id === wf.serviceKey);
+        if (service) section.services.push(service);
+      } else if (wf.name === 'Chat') {
+        // Chat workflow maps to chat-api service (not in generated config)
+        const chatService = allServices.find(s => s.id === 'chat-api');
+        if (chatService) section.services.push(chatService);
+      } else {
+        // Standalone workflow
+        section.standaloneWorkflows.push({
+          name: wf.name,
+          workflowInfo: workflows.get(wf.name),
+          run: runs.get(wf.name),
+        });
+      }
+    }
+
+    // Sort and filter services within each section
+    for (const section of sectionMap.values()) {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        section.services = section.services.filter(s =>
+          s.name.toLowerCase().includes(query) || s.id.toLowerCase().includes(query)
+        );
+      }
+      section.services.sort((a, b) => {
+        const getScore = (s: typeof a) => {
+          const isDown = s.status === 'stopped' || s.status === 'down';
+          const isWorkflowStopped = s.workflowStatus === 'stopped' || s.workflowStatus === 'failed';
+          const isStarting = s.workflowStatus === 'starting';
+          if (isDown || isWorkflowStopped) return 4;
+          if (isStarting) return 3;
+          if (s.status === 'running' || s.status === 'ok') return 2;
+          return 1;
+        };
+        const diff = getScore(b) - getScore(a);
+        return diff !== 0 ? diff : a.name.localeCompare(b.name);
+      });
+    }
+
+    return sectionMap;
+  }, [allServices, workflows, runs, searchQuery]);
 
   // GitHub Actions URL
   const githubActionsUrl = githubRepoOwner && githubRepoName
     ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions`
     : undefined;
+
+  // Build workflow name (for HealthRing actions)
+  const buildWorkflowName = BUILD_WORKFLOW?.name;
 
   // Is local chat mode
   const isLocalChat = chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1');
@@ -331,9 +358,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           onRefresh={fullRefresh}
           onSettings={onOpenSettings}
           onRestartAll={githubToken ? triggerAllWorkflows : undefined}
-          onBuildImages={githubToken ? () => triggerWorkflow('Build Images') : undefined}
-          isRestarting={!!triggering && triggering !== 'Build Images'}
-          isBuildingImages={triggering === 'Build Images'}
+          onBuildImages={githubToken && buildWorkflowName ? () => triggerWorkflow(buildWorkflowName) : undefined}
+          isRestarting={!!triggering && triggering !== buildWorkflowName}
+          isBuildingImages={triggering === buildWorkflowName}
           actionsDisabled={!githubToken}
           githubActionsUrl={githubActionsUrl}
         />
@@ -350,48 +377,51 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           />
         </div>
 
-        {/* Services */}
-        <Section
-          title="Services"
-          badge={`${stats.online}/${stats.total}`}
-          badgeColor={stats.down > 0 ? 'danger' : 'success'}
-        >
-          <div className="space-y-0.5">
-            {filteredServices.map(service => (
-              <ServiceRow
-                key={service.id}
-                name={service.name}
-                status={service.status}
-                workflowStatus={service.workflowStatus}
-                latency={service.latency}
-                onClick={() => setSelectedService(service.id)}
-              />
-            ))}
-          </div>
-        </Section>
+        {/* Workflow sections */}
+        {Array.from(workflowSections.entries()).map(([sectionName, section]) => {
+          const hasServices = section.services.length > 0;
+          const hasWorkflows = section.standaloneWorkflows.length > 0;
+          if (!hasServices && !hasWorkflows) return null;
 
-        {/* Workflows */}
-        <Section
-          title="Workflows"
-          badge={standaloneWorkflows.filter(wf => wf.run?.status === 'in_progress').length || undefined}
-          badgeColor="warning"
-          defaultOpen={true}
-        >
-          <div className="space-y-0.5">
-            {standaloneWorkflows.map(wf => (
-              <WorkflowRow
-                key={wf.name}
-                name={wf.name}
-                status={wf.run?.status}
-                conclusion={wf.run?.conclusion}
-                htmlUrl={wf.run?.html_url || (wf.workflowInfo ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${WORKFLOW_PATHS.get(wf.name)}` : undefined)}
-                onTrigger={() => triggerWorkflow(wf.name)}
-                triggering={triggering === wf.name}
-                disabled={!githubToken}
-              />
-            ))}
-          </div>
-        </Section>
+          const online = section.services.filter(s => s.status === 'running' || s.status === 'ok').length;
+          const total = section.services.length;
+          const down = section.services.filter(s => s.status === 'stopped' || s.status === 'down').length;
+
+          return (
+            <Section
+              key={sectionName}
+              title={sectionName}
+              badge={total > 1 ? `${online}/${total}` : undefined}
+              badgeColor={down > 0 ? 'danger' : 'success'}
+              defaultOpen={true}
+            >
+              <div className="space-y-0.5">
+                {section.services.map(service => (
+                  <ServiceRow
+                    key={service.id}
+                    name={service.name}
+                    status={service.status}
+                    workflowStatus={service.workflowStatus}
+                    latency={service.latency}
+                    onClick={() => setSelectedService(service.id)}
+                  />
+                ))}
+                {section.standaloneWorkflows.map(wf => (
+                  <WorkflowRow
+                    key={wf.name}
+                    name={wf.name}
+                    status={wf.run?.status}
+                    conclusion={wf.run?.conclusion}
+                    htmlUrl={wf.run?.html_url || (wf.workflowInfo ? `https://github.com/${githubRepoOwner}/${githubRepoName}/actions/workflows/${sectionName}.yml` : undefined)}
+                    onTrigger={() => triggerWorkflow(wf.name)}
+                    triggering={triggering === wf.name}
+                    disabled={!githubToken}
+                  />
+                ))}
+              </div>
+            </Section>
+          );
+        })}
 
         {/* Config hint */}
         {!githubToken && (

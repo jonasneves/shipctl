@@ -50,6 +50,9 @@ export const SERVICE_TO_WORKFLOW = new Map(
   WORKFLOWS.filter(wf => wf.serviceKey).map(wf => [wf.serviceKey!, wf.name])
 );
 
+// Build workflow (standalone workflow with "build" in path)
+export const BUILD_WORKFLOW = WORKFLOWS.find(wf => !wf.serviceKey && wf.path.includes('build'));
+
 export interface EnvConfig {
   githubToken: string;
   githubUsername?: string;

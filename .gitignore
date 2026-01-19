@@ -22,3 +22,5 @@ native-host/serverless_llm_native_host.sh
 
 # Native host runtime (logs)
 .native-host/
+
+.claude/
