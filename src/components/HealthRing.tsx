@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { RefreshCw, Settings } from 'lucide-react';
+import React, { memo, useState, useRef, useEffect } from 'react';
+import { RefreshCw, Settings, MoreVertical, RotateCcw, Package, ExternalLink } from 'lucide-react';
 
 interface HealthRingProps {
   online: number;
@@ -9,6 +9,12 @@ interface HealthRingProps {
   loading: boolean;
   onRefresh: () => void;
   onSettings?: () => void;
+  onRestartAll?: () => void;
+  onBuildImages?: () => void;
+  isRestarting?: boolean;
+  isBuildingImages?: boolean;
+  actionsDisabled?: boolean;
+  githubActionsUrl?: string;
 }
 
 /**
@@ -23,7 +29,29 @@ const HealthRing: React.FC<HealthRingProps> = ({
   loading,
   onRefresh,
   onSettings,
+  onRestartAll,
+  onBuildImages,
+  isRestarting,
+  isBuildingImages,
+  actionsDisabled,
+  githubActionsUrl,
 }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
+
+  const hasActions = onRestartAll || onBuildImages;
   // SVG arc calculations
   const size = 52;
   const strokeWidth = 5;
@@ -119,6 +147,64 @@ const HealthRing: React.FC<HealthRingProps> = ({
 
       {/* Actions */}
       <div className="flex items-center gap-1 flex-shrink-0">
+        {/* Actions dropdown - left of refresh */}
+        {hasActions && !actionsDisabled && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className={`p-2 rounded-lg transition-all duration-150 ${
+                menuOpen
+                  ? 'text-white bg-[#1a232e]'
+                  : 'text-slate-400 hover:text-white hover:bg-[#1a232e]'
+              }`}
+              title="Actions"
+              aria-label="Open actions menu"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-[#1a232e] border border-[#2a3544] rounded-lg shadow-xl z-50">
+                {onRestartAll && (
+                  <button
+                    onClick={() => { onRestartAll(); setMenuOpen(false); }}
+                    disabled={isRestarting}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${isRestarting ? 'animate-spin' : ''}`} />
+                    {isRestarting ? 'Restarting...' : 'Restart All'}
+                  </button>
+                )}
+                {onBuildImages && (
+                  <button
+                    onClick={() => { onBuildImages(); setMenuOpen(false); }}
+                    disabled={isBuildingImages}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Package className={`w-3.5 h-3.5 ${isBuildingImages ? 'animate-pulse' : ''}`} />
+                    {isBuildingImages ? 'Building...' : 'Build Images'}
+                  </button>
+                )}
+                {githubActionsUrl && (
+                  <>
+                    <div className="my-1 border-t border-[#2a3544]" />
+                    <a
+                      href={githubActionsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setMenuOpen(false)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:bg-[#252f3d] transition-colors"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      View All Actions
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <button
           onClick={onRefresh}
           disabled={loading}
@@ -132,6 +218,7 @@ const HealthRing: React.FC<HealthRingProps> = ({
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
+
         {onSettings && (
           <button
             onClick={onSettings}

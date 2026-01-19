@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import HealthRing from './HealthRing';
-import AlertBanner from './AlertBanner';
-import QuickActions from './QuickActions';
 import Section from './Section';
 import ServiceRow from './ServiceRow';
 import ServiceDetail from './ServiceDetail';
@@ -256,24 +254,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     return services;
   }, [allServices, searchQuery]);
 
-  // Alerts for services with issues
-  const alerts = useMemo(() => {
-    return filteredServices
-      .filter(s =>
-        s.status === 'stopped' ||
-        s.status === 'down' ||
-        s.workflowStatus === 'stopped' ||
-        s.workflowStatus === 'failed'
-      )
-      .map(s => ({
-        id: s.id,
-        name: s.name,
-        status: (s.workflowStatus === 'failed' ? 'failed' : 'down') as 'down' | 'failed',
-        reason: s.workflowStatus === 'stopped' ? 'Workflow ended' :
-                s.workflowStatus === 'failed' ? 'Workflow failed' : undefined,
-      }));
-  }, [filteredServices]);
-
   // Standalone workflows (non-service workflows like "Build Images")
   const standaloneWorkflows = useMemo(() => {
     return WORKFLOWS
@@ -350,24 +330,13 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           loading={loading}
           onRefresh={fullRefresh}
           onSettings={onOpenSettings}
+          onRestartAll={githubToken ? triggerAllWorkflows : undefined}
+          onBuildImages={githubToken ? () => triggerWorkflow('Build Images') : undefined}
+          isRestarting={!!triggering && triggering !== 'Build Images'}
+          isBuildingImages={triggering === 'Build Images'}
+          actionsDisabled={!githubToken}
+          githubActionsUrl={githubActionsUrl}
         />
-
-        {/* Alerts */}
-        <AlertBanner
-          alerts={alerts}
-          onViewLogs={(id) => setSelectedService(id)}
-        />
-
-        {/* Quick Actions */}
-        {githubToken && (
-          <QuickActions
-            onRestartAll={triggerAllWorkflows}
-            onBuildImages={() => triggerWorkflow('Build Images')}
-            githubActionsUrl={githubActionsUrl}
-            isRestarting={!!triggering && triggering !== 'Build Images'}
-            isBuildingImages={triggering === 'Build Images'}
-          />
-        )}
 
         {/* Search */}
         <div className="relative">

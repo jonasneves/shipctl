@@ -78,7 +78,7 @@ export function normalizeEnvConfig(raw: unknown): EnvConfig {
     githubRepoOwner: typeof merged.githubRepoOwner === 'string' ? merged.githubRepoOwner : DEFAULT_CONFIG.githubRepoOwner,
     githubRepoName: typeof merged.githubRepoName === 'string' ? merged.githubRepoName : DEFAULT_CONFIG.githubRepoName,
     chatApiBaseUrl: normalizeBaseUrl(typeof merged.chatApiBaseUrl === 'string' ? merged.chatApiBaseUrl : '') || DEFAULT_CONFIG.chatApiBaseUrl,
-    modelsBaseDomain: typeof merged.modelsBaseDomain === 'string' ? merged.modelsBaseDomain : DEFAULT_CONFIG.modelsBaseDomain,
+    modelsBaseDomain: (typeof merged.modelsBaseDomain === 'string' && merged.modelsBaseDomain) ? merged.modelsBaseDomain : DEFAULT_CONFIG.modelsBaseDomain,
     modelsUseHttps: typeof merged.modelsUseHttps === 'boolean' ? merged.modelsUseHttps : DEFAULT_CONFIG.modelsUseHttps,
   };
 }
