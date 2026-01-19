@@ -145,7 +145,7 @@ const HealthRing: React.FC<HealthRingProps> = ({
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-40 py-1 bg-[#1a232e] border border-[#2a3544] rounded-lg shadow-xl z-50">
+                <div className="absolute right-0 bottom-full mb-1 w-40 py-1 bg-[#1a232e] border border-[#2a3544] rounded-lg shadow-xl z-50">
                   {onRestartAll && (
                     <button
                       onClick={() => { onRestartAll(); setMenuOpen(false); }}

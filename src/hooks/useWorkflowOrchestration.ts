@@ -147,33 +147,48 @@ export function useWorkflowOrchestration({
       .filter(([_, run]) => run?.status === 'in_progress' || run?.status === 'queued')
       .map(([name, run]) => ({ name, run: run! }));
 
-    if (runningRuns.length === 0) return;
+    if (runningRuns.length === 0) {
+      onTriggerError?.('Stop All', 'No running workflows found');
+      return;
+    }
 
     setTriggering('stopping');
-    try {
-      for (const { name, run } of runningRuns) {
-        await github.cancelRun(run.id);
-        onTriggerSuccess?.(`${name} stopped`);
+    let stopped = 0;
+    for (const { name, run } of runningRuns) {
+      try {
+        const success = await github.cancelRun(run.id);
+        if (success) {
+          onTriggerSuccess?.(`${name} stopped`);
+          stopped++;
+        } else {
+          onTriggerError?.(name, 'Failed to cancel');
+        }
+      } catch (err: any) {
+        onTriggerError?.(name, err.message);
       }
-      setTimeout(() => onRefresh?.(), 2000);
-    } catch (err: any) {
-      onTriggerError?.('Stop All', err.message);
-    } finally {
-      setTriggering(null);
     }
+    if (stopped > 0) {
+      setTimeout(() => onRefresh?.(), 2000);
+    }
+    setTriggering(null);
   }, [runs, github, onRefresh, onTriggerSuccess, onTriggerError]);
 
   const cancelWorkflow = useCallback(async (workflowName: string) => {
     const run = runs.get(workflowName);
     if (!run || (run.status !== 'in_progress' && run.status !== 'queued')) {
+      onTriggerError?.(workflowName, 'No running workflow to stop');
       return;
     }
 
     setTriggering(`stopping:${workflowName}`);
     try {
-      await github.cancelRun(run.id);
-      onTriggerSuccess?.(`${workflowName} stopped`);
-      setTimeout(() => onRefresh?.(), 2000);
+      const success = await github.cancelRun(run.id);
+      if (success) {
+        onTriggerSuccess?.(`${workflowName} stopped`);
+        setTimeout(() => onRefresh?.(), 2000);
+      } else {
+        onTriggerError?.(workflowName, 'Failed to cancel workflow');
+      }
     } catch (err: any) {
       onTriggerError?.(workflowName, err.message);
     } finally {
