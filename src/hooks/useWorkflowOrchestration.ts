@@ -110,10 +110,8 @@ export function useWorkflowOrchestration({
         setRecentlyTriggered(prev => new Set(prev).add(workflowName));
         onTriggerSuccess?.(workflowName);
 
-        // Aggressive refresh polling: 3s, 6s, 10s
-        setTimeout(() => onRefresh?.(), 3000);
-        setTimeout(() => onRefresh?.(), 6000);
-        setTimeout(() => onRefresh?.(), 10000);
+        // Aggressive refresh polling at 3s, 6s, 10s
+        [3000, 6000, 10000].forEach(ms => setTimeout(() => onRefresh?.(), ms));
 
         // Clear from recentlyTriggered after 15s
         setTimeout(() => {

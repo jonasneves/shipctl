@@ -24,6 +24,14 @@ export function useBackendControl({
   const [buildLogTail, setBuildLogTail] = useState<string | null>(null);
   const [buildNativeError, setBuildNativeError] = useState<string | null>(null);
 
+  const clearBackendState = () => {
+    setBackendBusy(true);
+    setBackendLogTail(null);
+    setBackendNativeError(null);
+  };
+
+  const getBackendMode = () => modelsBaseDomain ? 'dev-chat' : 'dev-interface-local';
+
   const refreshBackendStatus = useCallback(async () => {
     const normalized = normalizeBaseUrl(chatApiBaseUrl) || 'http://localhost:8080';
     const resp = await nativeHost.status(normalized);
@@ -43,9 +51,7 @@ export function useBackendControl({
   }, [chatApiBaseUrl, onBackendStatusChange]);
 
   const startBackend = useCallback(async () => {
-    setBackendBusy(true);
-    setBackendLogTail(null);
-    setBackendNativeError(null);
+    clearBackendState();
 
     const isLocalChat = chatApiBaseUrl.includes('localhost') || chatApiBaseUrl.includes('127.0.0.1');
     if (!isLocalChat) {
@@ -54,8 +60,7 @@ export function useBackendControl({
       return;
     }
 
-    const mode = modelsBaseDomain ? 'dev-chat' : 'dev-interface-local';
-    const resp = await nativeHost.start(mode);
+    const resp = await nativeHost.start(getBackendMode());
     if (!resp?.ok && resp?.logTail) setBackendLogTail(resp.logTail);
     if (!resp?.ok && resp?.error) setBackendNativeError(resp.error);
     await refreshBackendStatus();
@@ -64,9 +69,7 @@ export function useBackendControl({
   }, [chatApiBaseUrl, modelsBaseDomain, refreshBackendStatus, checkBackendHealth]);
 
   const stopBackend = useCallback(async () => {
-    setBackendBusy(true);
-    setBackendLogTail(null);
-    setBackendNativeError(null);
+    clearBackendState();
     await nativeHost.stop();
     await refreshBackendStatus();
     await checkBackendHealth();
@@ -74,13 +77,9 @@ export function useBackendControl({
   }, [refreshBackendStatus, checkBackendHealth]);
 
   const restartBackend = useCallback(async () => {
-    setBackendBusy(true);
-    setBackendLogTail(null);
-    setBackendNativeError(null);
+    clearBackendState();
     await nativeHost.stop();
-
-    const mode = modelsBaseDomain ? 'dev-chat' : 'dev-interface-local';
-    const resp = await nativeHost.start(mode);
+    const resp = await nativeHost.start(getBackendMode());
     if (!resp?.ok && resp?.logTail) setBackendLogTail(resp.logTail);
     if (!resp?.ok && resp?.error) setBackendNativeError(resp.error);
     await refreshBackendStatus();

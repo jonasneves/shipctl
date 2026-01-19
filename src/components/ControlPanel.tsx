@@ -72,7 +72,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     backendPid,
     backendBusy,
     backendLogTail,
-    backendNativeError,
     buildBusy,
     buildLogTail,
     buildNativeError,
@@ -217,30 +216,23 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     ? `${publicScheme}://chat.${publicDomain}`
     : (normalizeBaseUrl(chatApiBaseUrl) || `${publicScheme}://chat.${publicDomain}`);
 
+  // Map health status to service status
+  const healthToStatus = (status: 'ok' | 'down' | 'checking') =>
+    status === 'ok' ? 'running' as const :
+    status === 'down' ? 'stopped' as const : 'checking' as const;
+
   // Build service data
   const buildService = (appId: string, name: string, isChatApi = false) => {
-    if (isChatApi) {
-      const status = backendHealth.status === 'ok' ? 'running' as const :
-                     backendHealth.status === 'down' ? 'stopped' as const : 'checking' as const;
-      return {
-        id: 'chat-api',
-        name: 'Chat API',
-        status,
-        workflowStatus: getWorkflowStatusForService('chat-api'),
-        latency: backendHealth.latency,
-        publicEndpoint: `chat.${publicDomain}`,
-        endpointUrl: chatPublicUrl,
-      };
-    }
-    const health = modelHealthStatuses.get(appId) || { status: 'checking' as const };
+    const health = isChatApi ? backendHealth : (modelHealthStatuses.get(appId) || { status: 'checking' as const });
+    const endpoint = isChatApi ? 'chat' : appId;
     return {
-      id: appId,
-      name,
-      status: health.status,
-      workflowStatus: getWorkflowStatusForService(appId),
+      id: isChatApi ? 'chat-api' : appId,
+      name: isChatApi ? 'Chat API' : name,
+      status: healthToStatus(health.status),
+      workflowStatus: getWorkflowStatusForService(isChatApi ? 'chat-api' : appId),
       latency: health.latency,
-      publicEndpoint: `${appId}.${publicDomain}`,
-      endpointUrl: `${publicScheme}://${appId}.${publicDomain}`,
+      publicEndpoint: `${endpoint}.${publicDomain}`,
+      endpointUrl: isChatApi ? chatPublicUrl : `${publicScheme}://${appId}.${publicDomain}`,
     };
   };
 
@@ -296,12 +288,10 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       }
       section.services.sort((a, b) => {
         const getScore = (s: typeof a) => {
-          const isDown = s.status === 'stopped' || s.status === 'down';
-          const isWorkflowStopped = s.workflowStatus === 'stopped' || s.workflowStatus === 'failed';
-          const isStarting = s.workflowStatus === 'starting';
-          if (isDown || isWorkflowStopped) return 4;
-          if (isStarting) return 3;
-          if (s.status === 'running' || s.status === 'ok') return 2;
+          const isWorkflowBad = s.workflowStatus === 'stopped' || s.workflowStatus === 'failed';
+          if (s.status === 'stopped' || isWorkflowBad) return 4;
+          if (s.workflowStatus === 'starting') return 3;
+          if (s.status === 'running') return 2;
           return 1;
         };
         const diff = getScore(b) - getScore(a);
@@ -429,9 +419,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           const hasWorkflows = section.standaloneWorkflows.length > 0;
           if (!hasServices && !hasWorkflows) return null;
 
-          const online = section.services.filter(s => s.status === 'running' || s.status === 'ok').length;
+          const online = section.services.filter(s => s.status === 'running').length;
           const total = section.services.length;
-          const down = section.services.filter(s => s.status === 'stopped' || s.status === 'down').length;
+          const down = section.services.filter(s => s.status === 'stopped').length;
 
           return (
             <Section

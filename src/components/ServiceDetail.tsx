@@ -426,24 +426,17 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
               {/* Local status banner with logs */}
               {isLocalChat && (
                 <div className={`rounded-xl border border-[#1e2832] overflow-hidden ${
-                  backendProcess === 'running' ? 'bg-emerald-500/10' :
-                  backendProcess === 'stopped' ? 'bg-slate-500/10' :
-                  'bg-slate-500/10'
+                  backendProcess === 'running' ? 'bg-emerald-500/10' : 'bg-slate-500/10'
                 }`}>
                   <div className="flex items-center justify-between p-3">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${
-                        backendProcess === 'running' ? 'bg-emerald-400' :
-                        backendProcess === 'stopped' ? 'bg-slate-400' :
-                        'bg-slate-400'
+                        backendProcess === 'running' ? 'bg-emerald-400' : 'bg-slate-400'
                       }`} />
                       <span className={`text-sm font-medium ${
-                        backendProcess === 'running' ? 'text-emerald-400' :
-                        'text-slate-400'
+                        backendProcess === 'running' ? 'text-emerald-400' : 'text-slate-400'
                       }`}>
-                        {backendProcess === 'running' ? 'Running' :
-                         backendProcess === 'stopped' ? 'Stopped' :
-                         'Unknown'}
+                        {backendProcess === 'running' ? 'Running' : backendProcess === 'stopped' ? 'Stopped' : 'Unknown'}
                       </span>
                     </div>
                     {backendPid && backendProcess === 'running' && (
