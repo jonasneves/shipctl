@@ -115,7 +115,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     triggerAllWorkflows,
     cancelAllRunning,
     cancelWorkflowRun,
-    deployingCount,
   } = useWorkflowOrchestration({
     githubToken,
     githubRepoOwner,
@@ -183,11 +182,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     return () => clearInterval(interval);
   }, [fetchLatestRuns, showOnlyBackend, checkBackendHealth, checkAllModelsHealth]);
 
-  // Stats
-  const stats = useMemo(() => ({
-    ...healthStats,
-    deploying: deployingCount,
-  }), [healthStats, deployingCount]);
 
   // Workflow status for services (model services use inference.yml)
   const getWorkflowStatusForService = (appId: string): 'running' | 'stopped' | 'failed' | 'starting' | 'unknown' => {
@@ -424,10 +418,9 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
       {/* Fixed header */}
       <div className="p-3 space-y-3">
         <HealthRing
-          online={stats.online}
-          down={stats.down}
-          deploying={stats.deploying}
-          total={stats.total}
+          online={healthStats.online}
+          down={healthStats.down}
+          total={healthStats.total}
           loading={loading}
           repoName={githubRepoOwner && githubRepoName ? `${githubRepoOwner}/${githubRepoName}` : undefined}
           onRefresh={fullRefresh}

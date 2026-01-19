@@ -4,7 +4,6 @@ import { RefreshCw, Settings, Zap, RotateCcw, Package, ExternalLink, Power, Gith
 interface HealthRingProps {
   online: number;
   down: number;
-  deploying: number;
   total: number;
   loading: boolean;
   repoName?: string;
@@ -27,7 +26,6 @@ interface HealthRingProps {
 const HealthRing: React.FC<HealthRingProps> = ({
   online,
   down,
-  deploying,
   total,
   loading,
   repoName,
@@ -67,9 +65,8 @@ const HealthRing: React.FC<HealthRingProps> = ({
 
   // Calculate arc segments (as percentages)
   const segments = [
-    { count: online, color: '#34d399' },      // emerald-400
-    { count: deploying, color: '#60a5fa' },   // blue-400
-    { count: down, color: '#f87171' },        // red-400
+    { count: online, color: '#34d399' },  // emerald-400
+    { count: down, color: '#f87171' },    // red-400
   ].filter(s => s.count > 0);
 
   // Create arc paths
@@ -109,7 +106,7 @@ const HealthRing: React.FC<HealthRingProps> = ({
   };
 
   const getStatusColor = () => {
-    if (deploying > 0) return 'text-blue-400';
+    if (down > 0) return 'text-red-400';
     if (online > 0) return 'text-emerald-400';
     return 'text-slate-400';
   };
@@ -252,7 +249,7 @@ const HealthRing: React.FC<HealthRingProps> = ({
           </div>
           <div className="text-[11px] text-slate-500 mt-0.5">
             {total} service{total !== 1 ? 's' : ''}
-            {deploying > 0 && ` · ${deploying} deploying`}
+            {down > 0 && ` · ${down} down`}
           </div>
         </div>
       </div>

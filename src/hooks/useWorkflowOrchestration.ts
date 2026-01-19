@@ -180,14 +180,6 @@ export function useWorkflowOrchestration({
     }
   }, [github, onRefresh, onTriggerSuccess, onTriggerError]);
 
-  const deployingCount = useMemo(() => {
-    let count = 0;
-    for (const runsList of activeRuns.values()) {
-      count += runsList.filter(isRunActive).length;
-    }
-    return count;
-  }, [activeRuns]);
-
   return {
     workflows,
     activeRuns,
@@ -202,6 +194,5 @@ export function useWorkflowOrchestration({
     triggerAllWorkflows,
     cancelAllRunning,
     cancelWorkflowRun,
-    deployingCount,
   };
 }
