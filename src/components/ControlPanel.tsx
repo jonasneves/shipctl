@@ -79,6 +79,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     refreshBackendStatus,
     startBackend,
     stopBackend,
+    restartBackend,
     fetchBackendLogs,
     runBuild,
   } = useBackendControl({
@@ -361,6 +362,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           isLocalChat={isLocalChat && service.id === 'chat-api'}
           onStart={startBackend}
           onStop={stopBackend}
+          onRestart={restartBackend}
           onFetchLogs={fetchBackendLogs}
           onBack={() => setSelectedService(null)}
         />

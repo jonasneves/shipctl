@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import {
   ArrowLeft,
   ExternalLink,
@@ -12,7 +12,8 @@ import {
   Globe,
   Monitor,
   RefreshCw,
-  Square,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import Sparkline from './Sparkline';
 import type { ServiceStatus } from '../constants/status';
@@ -43,6 +44,7 @@ interface ServiceDetailProps {
   isLocalChat?: boolean;
   onStart?: () => void;
   onStop?: () => void;
+  onRestart?: () => void;
   onFetchLogs?: () => void;
   onBack: () => void;
 }
@@ -72,10 +74,36 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
   isLocalChat,
   onStart,
   onStop,
+  onRestart,
   onFetchLogs,
   onBack,
 }) => {
-  const [showLogs, setShowLogs] = useState(false);
+  const [logsExpanded, setLogsExpanded] = useState(false);
+  const logsRef = useRef<HTMLPreElement>(null);
+
+  // Auto-fetch logs when local backend is shown
+  useEffect(() => {
+    if (isLocalChat && backendProcess === 'running' && onFetchLogs) {
+      onFetchLogs();
+    }
+  }, [isLocalChat, backendProcess, onFetchLogs]);
+
+  // Auto-refresh logs when expanded
+  useEffect(() => {
+    if (!logsExpanded || !onFetchLogs || backendProcess !== 'running') return;
+    const interval = setInterval(onFetchLogs, 3000);
+    return () => clearInterval(interval);
+  }, [logsExpanded, onFetchLogs, backendProcess]);
+
+  // Auto-scroll logs to bottom when expanded or logs change
+  useEffect(() => {
+    if (logsExpanded && logsRef.current) {
+      logsRef.current.scrollTop = logsRef.current.scrollHeight;
+    }
+  }, [logsExpanded, backendLogTail]);
+
+  // Get last line of logs
+  const lastLogLine = backendLogTail?.trim().split('\n').pop() || null;
   const isHealthy = status === 'running' || status === 'ok';
   const isDown = status === 'stopped' || status === 'down';
   const isStarting = workflowStatus === 'starting';
@@ -243,7 +271,7 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                       {cloudStopping ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Square className="w-4 h-4" />
+                        <Power className="w-4 h-4" />
                       )}
                       Stop
                     </button>
@@ -324,14 +352,14 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                 )}
               </div>
 
-              {/* Local status banner */}
+              {/* Local status banner with logs */}
               {isLocalChat && (
-                <div className={`p-3 rounded-xl border border-[#1e2832] ${
+                <div className={`rounded-xl border border-[#1e2832] overflow-hidden ${
                   backendProcess === 'running' ? 'bg-emerald-500/10' :
                   backendProcess === 'stopped' ? 'bg-slate-500/10' :
                   'bg-slate-500/10'
                 }`}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${
                         backendProcess === 'running' ? 'bg-emerald-400' :
@@ -351,6 +379,47 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
                       <span className="text-xs text-slate-500 font-mono">
                         PID {backendPid}
                       </span>
+                    )}
+                  </div>
+
+                  {/* Logs preview/expanded */}
+                  <div className="border-t border-[#1e2832]">
+                    <button
+                      onClick={() => {
+                        if (!logsExpanded) onFetchLogs?.();
+                        setLogsExpanded(!logsExpanded);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-white/5 transition-colors"
+                    >
+                      <Terminal className="w-3 h-3 text-slate-500 flex-shrink-0" />
+                      <span className="flex-1 text-[10px] text-slate-500 font-mono truncate">
+                        {lastLogLine || 'View logs'}
+                      </span>
+                      {logsExpanded ? (
+                        <ChevronUp className="w-3 h-3 text-slate-500 flex-shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 text-slate-500 flex-shrink-0" />
+                      )}
+                    </button>
+
+                    {logsExpanded && (
+                      <div className="px-3 pb-3">
+                        <div className="flex items-center justify-end mb-1.5">
+                          <button
+                            onClick={onFetchLogs}
+                            disabled={backendBusy}
+                            className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                          >
+                            Refresh
+                          </button>
+                        </div>
+                        <pre
+                          ref={logsRef}
+                          className="max-h-48 overflow-auto text-[10px] leading-relaxed bg-[#0a0f14] border border-[#1e2832] rounded-lg p-2 text-slate-400 whitespace-pre-wrap font-mono"
+                        >
+                          {backendLogTail || 'No logs available'}
+                        </pre>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -384,64 +453,48 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
               {isLocalChat && (
                 <div className="space-y-2">
                   <div className="flex gap-2">
-                    {backendProcess !== 'running' ? (
+                    {backendProcess === 'running' ? (
+                      <>
+                        <button
+                          onClick={onRestart}
+                          disabled={backendBusy}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {backendBusy ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4" />
+                          )}
+                          Restart
+                        </button>
+                        <button
+                          onClick={onStop}
+                          disabled={backendBusy}
+                          className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {backendBusy ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Power className="w-4 h-4" />
+                          )}
+                          Stop
+                        </button>
+                      </>
+                    ) : (
                       <button
                         onClick={onStart}
                         disabled={backendBusy}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {backendBusy ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          <Power className="w-4 h-4" />
+                          <Rocket className="w-4 h-4" />
                         )}
                         Start
                       </button>
-                    ) : (
-                      <button
-                        onClick={onStop}
-                        disabled={backendBusy}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {backendBusy ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Power className="w-4 h-4" />
-                        )}
-                        Stop
-                      </button>
                     )}
-                    <button
-                      onClick={() => {
-                        onFetchLogs?.();
-                        setShowLogs(true);
-                      }}
-                      disabled={backendBusy}
-                      className="px-3 py-2.5 text-slate-400 hover:text-white bg-[#1a232e] hover:bg-[#232d3b] rounded-xl border border-[#2a3544] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="View logs"
-                    >
-                      <Terminal className="w-4 h-4" />
-                    </button>
                   </div>
-
-                  {/* Server logs */}
-                  {showLogs && backendLogTail && (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between px-1">
-                        <span className="text-[11px] text-slate-500 font-medium">Logs</span>
-                        <button
-                          onClick={onFetchLogs}
-                          disabled={backendBusy}
-                          className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
-                        >
-                          Refresh
-                        </button>
-                      </div>
-                      <pre className="max-h-48 overflow-auto text-[10px] leading-relaxed bg-[#0a0f14] border border-[#1e2832] rounded-xl p-3 text-slate-400 whitespace-pre-wrap font-mono">
-                        {backendLogTail}
-                      </pre>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

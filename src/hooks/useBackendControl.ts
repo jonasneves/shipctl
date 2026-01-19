@@ -73,6 +73,21 @@ export function useBackendControl({
     setBackendBusy(false);
   }, [refreshBackendStatus, checkBackendHealth]);
 
+  const restartBackend = useCallback(async () => {
+    setBackendBusy(true);
+    setBackendLogTail(null);
+    setBackendNativeError(null);
+    await nativeHost.stop();
+
+    const mode = modelsBaseDomain ? 'dev-chat' : 'dev-interface-local';
+    const resp = await nativeHost.start(mode);
+    if (!resp?.ok && resp?.logTail) setBackendLogTail(resp.logTail);
+    if (!resp?.ok && resp?.error) setBackendNativeError(resp.error);
+    await refreshBackendStatus();
+    await checkBackendHealth();
+    setBackendBusy(false);
+  }, [modelsBaseDomain, refreshBackendStatus, checkBackendHealth]);
+
   const fetchBackendLogs = useCallback(async () => {
     const resp = await nativeHost.logs();
     if (resp?.ok) setBackendLogTail(resp.logTail || null);
@@ -113,6 +128,7 @@ export function useBackendControl({
     refreshBackendStatus,
     startBackend,
     stopBackend,
+    restartBackend,
     fetchBackendLogs,
     runBuild,
   };
