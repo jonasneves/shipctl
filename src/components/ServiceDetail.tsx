@@ -145,36 +145,22 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
 
   // Cloud status helpers
   const isWorkflowBad = workflowStatus === 'stopped' || workflowStatus === 'failed';
+  const isBad = isDown || isWorkflowBad;
 
-  const getCloudBannerBg = () => {
-    if (isHealthy) return 'bg-emerald-500/10';
-    if (isStarting) return 'bg-blue-500/10';
-    if (isDown || isWorkflowBad) return 'bg-red-500/10';
-    return 'bg-slate-500/10';
-  };
-
-  const getCloudDotClass = () => {
-    if (isHealthy) return 'bg-emerald-400';
-    if (isStarting) return 'bg-blue-400 animate-pulse';
-    if (isDown || isWorkflowBad) return 'bg-red-400';
-    return 'bg-slate-400';
-  };
-
-  const getCloudTextClass = () => {
-    if (isHealthy) return 'text-emerald-400';
-    if (isStarting) return 'text-blue-400';
-    if (isDown || isWorkflowBad) return 'text-red-400';
-    return 'text-slate-400';
-  };
-
-  const getCloudStatusText = () => {
-    if (isHealthy) return 'Healthy';
-    if (isStarting) return 'Starting...';
-    if (workflowStatus === 'stopped') return 'Stopped';
-    if (workflowStatus === 'failed') return 'Failed';
-    if (isDown) return 'Down';
-    return 'Checking...';
-  };
+  function getCloudStyles() {
+    if (isHealthy) {
+      return { bg: 'bg-emerald-500/10', dot: 'bg-emerald-400', text: 'text-emerald-400', label: 'Healthy' };
+    }
+    if (isStarting) {
+      return { bg: 'bg-blue-500/10', dot: 'bg-blue-400 animate-pulse', text: 'text-blue-400', label: 'Starting...' };
+    }
+    if (isBad) {
+      const label = workflowStatus === 'stopped' ? 'Stopped' : workflowStatus === 'failed' ? 'Failed' : 'Down';
+      return { bg: 'bg-red-500/10', dot: 'bg-red-400', text: 'text-red-400', label };
+    }
+    return { bg: 'bg-slate-500/10', dot: 'bg-slate-400', text: 'text-slate-400', label: 'Checking...' };
+  }
+  const cloudStyles = getCloudStyles();
 
   // Deployment status icon
   const DeployStatusIcon = () => {
@@ -251,12 +237,12 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
               </div>
 
               {/* Cloud status banner */}
-              <div className={`p-3 rounded-xl border border-[#1e2832] ${getCloudBannerBg()}`}>
+              <div className={`p-3 rounded-xl border border-[#1e2832] ${cloudStyles.bg}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${getCloudDotClass()}`} />
-                    <span className={`text-sm font-medium ${getCloudTextClass()}`}>
-                      {getCloudStatusText()}
+                    <div className={`w-2 h-2 rounded-full ${cloudStyles.dot}`} />
+                    <span className={`text-sm font-medium ${cloudStyles.text}`}>
+                      {cloudStyles.label}
                     </span>
                   </div>
                   {isHealthy && latency && (

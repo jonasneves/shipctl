@@ -19,10 +19,6 @@ interface HealthRingProps {
   githubActionsUrl?: string;
 }
 
-/**
- * Visual health ring showing aggregate system status
- * Uses an SVG arc to show proportion of healthy/down/deploying services
- */
 const HealthRing: React.FC<HealthRingProps> = ({
   online,
   down,

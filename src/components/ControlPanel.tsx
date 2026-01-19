@@ -182,7 +182,6 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     return () => clearInterval(interval);
   }, [fetchLatestRuns, showOnlyBackend, checkBackendHealth, checkAllModelsHealth]);
 
-
   // Workflow status for services (model services use inference.yml)
   const getWorkflowStatusForService = (appId: string): 'running' | 'stopped' | 'failed' | 'starting' | 'unknown' => {
     const inferenceWfPath = Array.from(workflows.keys()).find(p => p.endsWith('inference.yml'));
@@ -193,11 +192,15 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
     const run = runsList.find(r => r.display_title?.toLowerCase().startsWith(appId.toLowerCase()));
     if (!run) return 'unknown';
 
-    if (run.status === 'in_progress') return 'running';
-    if (run.status === 'queued') return 'starting';
-    if (run.conclusion === 'failure') return 'failed';
-    if (run.conclusion === 'success') return 'stopped';
-    return 'unknown';
+    switch (run.status) {
+      case 'in_progress': return 'running';
+      case 'queued': return 'starting';
+    }
+    switch (run.conclusion) {
+      case 'failure': return 'failed';
+      case 'success': return 'stopped';
+      default: return 'unknown';
+    }
   };
 
   // URL helpers
