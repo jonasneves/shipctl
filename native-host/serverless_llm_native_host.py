@@ -384,6 +384,35 @@ def main() -> None:
         _write_message({"ok": True, "logTail": _tail_file(log_path, max_lines=120)})
         return
 
+    if action == "get_config":
+        # Auto-detect configuration values
+        detected = {}
+
+        # Detect repo path (already found above)
+        detected["repoPath"] = str(repo_root)
+
+        # Detect python path
+        python_path = which("python3") or which("python")
+        if python_path:
+            detected["pythonPath"] = python_path
+
+        # Detect GitHub repo owner/name from git remote
+        git_config = repo_root / ".git" / "config"
+        if git_config.exists():
+            try:
+                content = git_config.read_text("utf-8")
+                import re
+                # Match: url = git@github.com:owner/repo.git or url = https://github.com/owner/repo.git
+                match = re.search(r'url\s*=\s*(?:git@github\.com:|https://github\.com/)([^/]+)/([^/\s]+?)(?:\.git)?$', content, re.MULTILINE)
+                if match:
+                    detected["githubRepoOwner"] = match.group(1)
+                    detected["githubRepoName"] = match.group(2)
+            except Exception:
+                pass
+
+        _write_message({"ok": True, **detected})
+        return
+
     if action == "save_config":
         try:
             env_file = Path(__file__).resolve().parent / ".shipctl.env"

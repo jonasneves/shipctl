@@ -52,6 +52,15 @@ class NativeHost {
   async saveConfig(pythonPath: string, repoPath: string): Promise<NativeResponse> {
     return this.sendMessage({ action: 'save_config', pythonPath, repoPath });
   }
+
+  async getConfig(): Promise<NativeResponse & {
+    repoPath?: string;
+    pythonPath?: string;
+    githubRepoOwner?: string;
+    githubRepoName?: string;
+  }> {
+    return this.sendMessage({ action: 'get_config' });
+  }
 }
 
 export const nativeHost = new NativeHost();

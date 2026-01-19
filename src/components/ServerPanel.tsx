@@ -13,8 +13,25 @@ const ServerPanel: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<{ message: string; variant: 'error' | 'success' } | null>(null);
 
   useEffect(() => {
-    chrome.storage.local.get(['envConfig'], (result: { envConfig?: EnvConfig }) => {
+    chrome.storage.local.get(['envConfig'], async (result: { envConfig?: EnvConfig }) => {
       const loadedConfig = normalizeEnvConfig(result.envConfig);
+
+      // Auto-detect values from native host if not already set
+      try {
+        const detected = await nativeHost.getConfig();
+        if (detected.ok) {
+          const merged = { ...loadedConfig };
+          if (!merged.repoPath && detected.repoPath) merged.repoPath = detected.repoPath;
+          if (!merged.pythonPath && detected.pythonPath) merged.pythonPath = detected.pythonPath;
+          if (!merged.githubRepoOwner && detected.githubRepoOwner) merged.githubRepoOwner = detected.githubRepoOwner;
+          if (!merged.githubRepoName && detected.githubRepoName) merged.githubRepoName = detected.githubRepoName;
+          setConfig(merged);
+          return;
+        }
+      } catch {
+        // Native host not available, use loaded config
+      }
+
       setConfig(loadedConfig);
     });
   }, []);
