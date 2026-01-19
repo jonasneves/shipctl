@@ -375,7 +375,7 @@ const ControlPanel: React.FC<ControlPanelProps> = ({
           title="Workflows"
           badge={standaloneWorkflows.filter(wf => wf.run?.status === 'in_progress').length || undefined}
           badgeColor="warning"
-          defaultOpen={false}
+          defaultOpen={true}
         >
           <div className="space-y-0.5">
             {standaloneWorkflows.map(wf => (
