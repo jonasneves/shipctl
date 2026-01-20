@@ -25,6 +25,14 @@
       "rank": 2
     },
     {
+      "key": "glm",
+      "name": "GLM-4.7 Flash",
+      "localPort": 8302,
+      "category": "reasoning",
+      "modelId": "glm-4.7-flash",
+      "rank": 2
+    },
+    {
       "key": "smollm3",
       "name": "SmolLM3 3B",
       "localPort": 8104,
@@ -74,10 +82,10 @@
     },
     {
       "key": "phi",
-      "name": "Phi-3 Mini",
+      "name": "Phi-4 Mini",
       "localPort": 8101,
       "category": "small",
-      "modelId": "phi-3-mini",
+      "modelId": "phi-4-mini",
       "rank": 9
     },
     {
@@ -143,6 +151,12 @@
       "serviceKey": "dasd"
     },
     {
+      "name": "GLM-4.7 Flash",
+      "path": "inference.yml",
+      "category": "reasoning",
+      "serviceKey": "glm"
+    },
+    {
       "name": "SmolLM3 3B",
       "path": "inference.yml",
       "category": "small",
@@ -179,7 +193,7 @@
       "serviceKey": "mistral"
     },
     {
-      "name": "Phi-3 Mini",
+      "name": "Phi-4 Mini",
       "path": "inference.yml",
       "category": "small",
       "serviceKey": "phi"
@@ -258,6 +272,13 @@
       "category": "small"
     },
     {
+      "id": "glm-4.7-flash",
+      "name": "GLM-4.7 Flash",
+      "type": "local",
+      "priority": 2,
+      "category": "reasoning"
+    },
+    {
       "id": "smollm3-3b",
       "name": "SmolLM3 3B",
       "type": "local",
@@ -300,8 +321,8 @@
       "category": "medium"
     },
     {
-      "id": "phi-3-mini",
-      "name": "Phi-3 Mini",
+      "id": "phi-4-mini",
+      "name": "Phi-4 Mini",
       "type": "local",
       "priority": 9,
       "category": "small"
@@ -335,6 +356,6 @@
       "category": "reasoning"
     }
   ],
-  "generatedAt": "2026-01-20T05:57:25.289513Z",
+  "generatedAt": "2026-01-20T06:26:10.970031Z",
   "sourceFile": "config/models.py"
 }
