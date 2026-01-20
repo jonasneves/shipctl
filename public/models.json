@@ -17,8 +17,24 @@
       "context_length": 32768
     },
     {
+      "id": "dasd-4b-thinking",
+      "name": "DASD-4B Thinking",
+      "type": "local",
+      "priority": 2,
+      "category": "small",
+      "context_length": 32768
+    },
+    {
       "id": "smollm3-3b",
       "name": "SmolLM3 3B",
+      "type": "local",
+      "priority": 3,
+      "category": "small",
+      "context_length": 32768
+    },
+    {
+      "id": "agentcpm-explore-4b",
+      "name": "AgentCPM-Explore 4B",
       "type": "local",
       "priority": 3,
       "category": "small",
@@ -659,6 +675,6 @@
       ]
     }
   ],
-  "fetchedAt": "2026-01-20T05:53:24.805Z",
+  "fetchedAt": "2026-01-20T06:20:27.363Z",
   "source": "build-time"
 }
