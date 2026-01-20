@@ -89,14 +89,6 @@
       "context_length": 32768
     },
     {
-      "id": "nemotron-3-nano-30b-a3b",
-      "name": "Nemotron-3 Nano 30B",
-      "type": "local",
-      "priority": 12,
-      "category": "reasoning",
-      "context_length": 32768
-    },
-    {
       "id": "gpt-oss-20b",
       "name": "GPT-OSS 20B",
       "type": "local",
@@ -667,6 +659,6 @@
       ]
     }
   ],
-  "fetchedAt": "2026-01-19T22:22:50.120Z",
+  "fetchedAt": "2026-01-20T05:53:24.805Z",
   "source": "build-time"
 }

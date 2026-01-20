@@ -17,7 +17,7 @@ help:
 	@echo "ShipCTL Chrome Extension"
 	@echo ""
 	@echo "Build:"
-	@echo "  make build-extension Build extension (outputs to dist/)"
+	@echo "  make build           Build extension (outputs to dist/)"
 	@echo "  make dev             Start development server"
 	@echo "  make clean           Remove built files and node_modules"
 	@echo ""
@@ -32,7 +32,7 @@ help:
 	@echo ""
 	@echo "Extension ID: $(EXT_ID)"
 
-build-extension:
+build:
 	@echo "Building ShipCTL extension..."
 	npm install
 	npm run build:extension
@@ -41,9 +41,6 @@ build-extension:
 	@echo "Load in Chrome: chrome://extensions -> Load unpacked -> shipctl/dist/"
 	@echo ""
 	@echo "Extension ID: $(EXT_ID)"
-
-# Alias for backward compatibility
-build: build-extension
 
 dev:
 	npm install
