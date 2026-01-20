@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 // So we need to go up from scripts (1) -> shipctl (2) -> extensions (3) -> chrome-extensions (4) -> github root
 // Then down to serverless-llm.
 // So ../../../../serverless-llm
-const DEFAULT_REPO_PATH = '../../../../serverless-llm';
+const DEFAULT_REPO_PATH = '../../../serverless-llm';
 const MANIFEST_PATH = '.shipctl/apps.json';
 const OUTPUT_PATH = '../src/data/extension-config.json'; // Relative to scripts dir
 
